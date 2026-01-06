@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --font-sans: "Pretendard", "Noto Sans KR", "Apple SD Gothic Neo", "Segoe UI", Arial, sans-serif;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    color: #1f2937;
+    background-color: #f8fafc;
+  }
+}
+
+@layer utilities {
+  .bg-grid {
+    background-image: radial-gradient(rgba(226, 232, 240, 0.7) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  @media (orientation: landscape) and (max-height: 560px) {
+    .landscape-stack {
+      grid-template-columns: 1fr !important;
+    }
+
+    .landscape-unset {
+      position: static !important;
+      top: auto !important;
+    }
+  }
+}
