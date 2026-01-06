@@ -21,88 +21,14 @@ import {
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
+import { LocaleSwitcher } from "@/components/locale-switcher";
+import { useLocale } from "@/app/locale-provider";
 import { cn } from "@/lib/utils";
 import { usePdfFiles } from "@/app/providers";
+import { homeCopy } from "@/lib/copy";
 
-const features = [
-  {
-    title: "PDF 편집",
-    description: "텍스트, 이미지, 링크를 브라우저에서 바로 수정하세요.",
-    icon: Edit3
-  },
-  {
-    title: "Word로 변환",
-    description: "레이아웃을 유지한 채 DOCX로 빠르게 변환합니다.",
-    icon: FileText
-  },
-  {
-    title: "이미지 추출",
-    description: "PDF 속 모든 이미지를 일괄 추출해 저장합니다.",
-    icon: Image
-  },
-  {
-    title: "페이지 병합",
-    description: "여러 문서를 한 번에 드래그해 병합하세요.",
-    icon: Layers
-  },
-  {
-    title: "서명 추가",
-    description: "전자 서명을 올려 클릭 한 번에 승인합니다.",
-    icon: PenTool
-  },
-  {
-    title: "암호 설정",
-    description: "문서 암호화와 접근 권한을 간편하게 관리합니다.",
-    icon: Lock
-  },
-  {
-    title: "페이지 분할",
-    description: "필요한 페이지만 추출해 새 문서를 만듭니다.",
-    icon: Files
-  },
-  {
-    title: "보안 검증",
-    description: "민감한 파일도 안전하게 처리하는 보안 설계.",
-    icon: ShieldCheck
-  }
-];
-
-const steps = [
-  {
-    title: "업로드",
-    description: "PDF 파일을 바로 끌어다 놓으세요.",
-    icon: UploadCloud
-  },
-  {
-    title: "편집",
-    description: "필요한 도구를 선택해 즉시 편집합니다.",
-    icon: Sparkles
-  },
-  {
-    title: "완료 및 다운로드",
-    description: "완성된 파일을 안전하게 저장하세요.",
-    icon: FileUp
-  }
-];
-
-const faqs = [
-  {
-    question: "구독제가 있나요?",
-    answer: "구독 없이 기본 기능을 무료로 제공하며, 대용량/배치 작업은 단건 결제로 이용할 수 있습니다."
-  },
-  {
-    question: "업로드한 파일은 안전한가요?",
-    answer: "전송 구간 암호화와 자동 삭제 정책으로 파일을 안전하게 보호합니다."
-  },
-  {
-    question: "모바일에서도 이용할 수 있나요?",
-    answer: "모바일과 태블릿에서도 동일한 편집 경험을 제공합니다."
-  },
-  {
-    question: "팀 협업이 가능한가요?",
-    answer: "공유 링크와 버전 히스토리를 통해 팀원과 협업할 수 있습니다."
-  }
-];
+const featureIcons = [Edit3, FileText, Image, Layers, PenTool, Lock, Files, ShieldCheck];
+const stepIcons = [UploadCloud, Sparkles, FileUp];
 
 export default function Home() {
   const router = useRouter();
@@ -112,6 +38,8 @@ export default function Home() {
   const [fileSize, setFileSize] = useState<string | null>(null);
   const [fileCount, setFileCount] = useState(0);
   const { setFiles } = usePdfFiles();
+  const { locale } = useLocale();
+  const copy = homeCopy[locale];
 
   const handleFiles = (fileList: FileList | null) => {
     if (!fileList?.length) {
@@ -137,14 +65,16 @@ export default function Home() {
   const dropZoneLabel = useMemo(() => {
     if (fileName) {
       if (fileCount > 1) {
-        return `${fileName} 외 ${fileCount - 1}개 · ${fileSize}`;
+        return locale === "ko"
+          ? `${fileName} 외 ${fileCount - 1}개 · ${fileSize}`
+          : `${fileName} + ${fileCount - 1} more · ${fileSize}`;
       }
 
       return `${fileName} · ${fileSize}`;
     }
 
-    return "PDF 파일을 놓으세요";
-  }, [fileName, fileSize, fileCount]);
+    return copy.upload.emptyLabel;
+  }, [fileName, fileSize, fileCount, locale, copy.upload.emptyLabel]);
 
   return (
     <div className="relative">
@@ -166,25 +96,23 @@ export default function Home() {
             </div>
             <nav className="hidden items-center gap-8 text-sm font-medium text-slate-600 md:flex">
               <a className="transition hover:text-slate-900" href="#how">
-                작동 방식
+                {copy.nav.how}
               </a>
               <a className="transition hover:text-slate-900" href="#usage">
-                이용 방식
+                {copy.nav.usage}
               </a>
               <a className="transition hover:text-slate-900" href="#tools">
-                도구
+                {copy.nav.tools}
               </a>
               <a className="transition hover:text-slate-900" href="#faq">
-                자주 묻는 질문
+                {copy.nav.faq}
               </a>
             </nav>
             <div className="flex items-center gap-3">
-              <Button variant="ghost" size="sm">
-                로그인
-              </Button>
+              <LocaleSwitcher className="shrink-0" />
               <Button size="sm" asChild>
                 <Link href="/editor">
-                  무료로 시작하기
+                  {copy.cta.startFree}
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
@@ -203,16 +131,14 @@ export default function Home() {
           >
             <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/90 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-brand shadow-soft-md">
               <Sparkles className="h-4 w-4" />
-              온라인 PDF 도구
+              {copy.hero.badge}
             </div>
             <h1 className="text-4xl font-bold leading-tight tracking-tight text-slate-900 md:text-6xl">
-              온라인에서 간단하게 PDF 작업
+              {copy.hero.title}
             </h1>
-            <p className="text-lg text-slate-600">
-              PDF 병합, 서명, 변환을 브라우저에서 처리하세요.
-            </p>
+            <p className="text-lg text-slate-600">{copy.hero.subtitle}</p>
             <div className="flex flex-wrap items-center justify-center gap-2 text-xs font-semibold text-slate-600">
-              {["구독 없음", "설치 없음", "대용량 지원"].map((item) => (
+              {copy.hero.chips.map((item) => (
                 <span
                   key={item}
                   className="rounded-full border border-slate-200 bg-white/80 px-3 py-1 shadow-soft-md"
@@ -260,20 +186,16 @@ export default function Home() {
                 </div>
                 <div className="space-y-2">
                   <p className="text-base font-semibold text-slate-900">{dropZoneLabel}</p>
-                  <p className="text-sm text-slate-500">클릭하거나 드래그 앤 드롭으로 업로드</p>
+                  <p className="text-sm text-slate-500">{copy.upload.hint}</p>
                 </div>
                 <Button className="mt-2" size="lg">
-                  PDF 업로드하기
+                  {copy.upload.button}
                 </Button>
               </div>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-3">
-              {[
-                { label: "페이지 병합", desc: "페이지 순서 변경 가능" },
-                { label: "서명 추가", desc: "원하는 위치에 적용" },
-                { label: "변환/추출", desc: "Word 변환, 이미지 추출" }
-              ].map((item) => (
+              {copy.quickCards.map((item) => (
                 <div key={item.label} className="rounded-2xl border border-slate-200 bg-white/90 p-4">
                   <p className="text-sm font-semibold text-slate-900">{item.label}</p>
                   <p className="mt-2 text-xs text-slate-500">{item.desc}</p>
@@ -292,19 +214,19 @@ export default function Home() {
           >
             <div className="flex items-end justify-between gap-6">
               <div>
-                <p className="text-sm font-semibold uppercase tracking-wide text-brand">주요 기능</p>
-                <h2 className="mt-3 text-3xl font-bold text-slate-900">PDF를 위한 올인원 도구 세트</h2>
-                <p className="mt-2 text-slate-600">
-                  편집부터 보안까지, 필요한 모든 작업을 한 번에 해결하세요.
+                <p className="text-sm font-semibold uppercase tracking-wide text-brand">
+                  {copy.toolsSection.eyebrow}
                 </p>
+                <h2 className="mt-3 text-3xl font-bold text-slate-900">{copy.toolsSection.title}</h2>
+                <p className="mt-2 text-slate-600">{copy.toolsSection.description}</p>
               </div>
               <Button variant="outline" className="hidden md:inline-flex">
-                더 많은 기능
+                {copy.toolsSection.button}
               </Button>
             </div>
             <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {features.map((feature, index) => {
-                const Icon = feature.icon;
+              {copy.features.map((feature, index) => {
+                const Icon = featureIcons[index];
                 return (
                   <motion.div
                     key={feature.title}
@@ -315,7 +237,7 @@ export default function Home() {
                     className="rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-soft-md"
                   >
                     <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand/10 text-brand">
-                      <Icon className="h-5 w-5" />
+                      {Icon ? <Icon className="h-5 w-5" /> : null}
                     </div>
                     <h3 className="mt-4 text-base font-semibold text-slate-900">{feature.title}</h3>
                     <p className="mt-2 text-sm text-slate-600">{feature.description}</p>
@@ -336,37 +258,21 @@ export default function Home() {
           >
             <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
               <div className="space-y-3">
-                <p className="text-sm font-semibold uppercase tracking-wide text-brand">이용 방식</p>
-                <h2 className="text-3xl font-bold text-slate-900">필요한 만큼 사용</h2>
-                <p className="text-slate-600">
-                  기본 도구는 무료로, 대용량/배치 작업은 단건 결제로 제공합니다.
+                <p className="text-sm font-semibold uppercase tracking-wide text-brand">
+                  {copy.usageSection.eyebrow}
                 </p>
+                <h2 className="text-3xl font-bold text-slate-900">{copy.usageSection.title}</h2>
+                <p className="text-slate-600">{copy.usageSection.description}</p>
               </div>
               <div className="flex flex-wrap gap-3">
-                <Button variant="outline">이용 안내</Button>
+                <Button variant="outline">{copy.usageSection.secondaryCta}</Button>
                 <Button asChild>
-                  <Link href="/editor">무료로 시작하기</Link>
+                  <Link href="/editor">{copy.usageSection.primaryCta}</Link>
                 </Button>
               </div>
             </div>
             <div className="mt-8 grid gap-4 md:grid-cols-3">
-              {[
-                {
-                  title: "무료 기본",
-                  price: "₩0",
-                  desc: "편집, 병합, 서명 등 핵심 기능"
-                },
-                {
-                  title: "단건 결제",
-                  price: "작업당 과금",
-                  desc: "대용량/배치 작업이 필요한 경우"
-                },
-                {
-                  title: "팀/대량",
-                  price: "맞춤형",
-                  desc: "정산·관리 기능이 필요한 팀"
-                }
-              ].map((plan) => (
+              {copy.usageSection.cards.map((plan) => (
                 <div key={plan.title} className="rounded-2xl border border-slate-200 bg-white p-6">
                   <p className="text-sm font-semibold text-slate-500">{plan.title}</p>
                   <p className="mt-3 text-2xl font-bold text-slate-900">{plan.price}</p>
@@ -386,18 +292,20 @@ export default function Home() {
             className="rounded-3xl border border-slate-200 bg-white/90 p-10 shadow-soft-lg"
           >
             <div className="flex flex-col gap-2">
-              <p className="text-sm font-semibold uppercase tracking-wide text-brand">작동 방식</p>
-              <h2 className="text-3xl font-bold text-slate-900">세 단계로 끝나는 PDF 처리</h2>
+              <p className="text-sm font-semibold uppercase tracking-wide text-brand">
+                {copy.howSection.eyebrow}
+              </p>
+              <h2 className="text-3xl font-bold text-slate-900">{copy.howSection.title}</h2>
             </div>
             <div className="mt-8 grid gap-6 md:grid-cols-3">
-              {steps.map((step, index) => {
-                const Icon = step.icon;
+              {copy.howSection.steps.map((step, index) => {
+                const Icon = stepIcons[index];
                 return (
                   <div key={step.title} className="rounded-2xl border border-slate-200 bg-slate-50 p-6">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-semibold text-slate-500">0{index + 1}</span>
                       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand/10 text-brand">
-                        <Icon className="h-5 w-5" />
+                        {Icon ? <Icon className="h-5 w-5" /> : null}
                       </div>
                     </div>
                     <h3 className="mt-4 text-lg font-semibold text-slate-900">{step.title}</h3>
@@ -418,17 +326,13 @@ export default function Home() {
             className="grid items-center gap-10 lg:grid-cols-[1.05fr_0.95fr]"
           >
             <div className="space-y-6">
-              <p className="text-sm font-semibold uppercase tracking-wide text-brand">혜택</p>
-              <h2 className="text-3xl font-bold text-slate-900">PDF Pro를 선택하는 이유</h2>
-              <p className="text-base text-slate-600">
-                필요한 작업을 빠르게 처리하고, 보안과 사용성을 함께 제공합니다.
+              <p className="text-sm font-semibold uppercase tracking-wide text-brand">
+                {copy.benefits.eyebrow}
               </p>
+              <h2 className="text-3xl font-bold text-slate-900">{copy.benefits.title}</h2>
+              <p className="text-base text-slate-600">{copy.benefits.description}</p>
               <div className="space-y-4">
-                {[
-                  "브라우저 기반으로 설치 없이 즉시 사용",
-                  "문서 버전 관리와 협업 히스토리 제공",
-                  "자주 쓰는 작업을 빠르게 이어주는 템플릿 제공"
-                ].map((item) => (
+                {copy.benefits.bullets.map((item) => (
                   <div key={item} className="flex items-center gap-3 text-sm text-slate-600">
                     <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand/10 text-brand">
                       <ArrowRight className="h-3 w-3" />
@@ -439,9 +343,9 @@ export default function Home() {
               </div>
               <div className="flex flex-wrap gap-3">
                 <Button asChild>
-                  <Link href="/editor">바로 시작</Link>
+                  <Link href="/editor">{copy.benefits.primaryCta}</Link>
                 </Button>
-                <Button variant="outline">데모 보기</Button>
+                <Button variant="outline">{copy.benefits.secondaryCta}</Button>
               </div>
             </div>
             <div className="relative">
@@ -450,19 +354,17 @@ export default function Home() {
               <div className="relative overflow-hidden rounded-3xl border border-slate-200 bg-white p-8 shadow-soft-lg">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">작업 흐름</p>
-                    <h3 className="mt-2 text-xl font-semibold text-slate-900">문서 작업을 간단하게 정리합니다</h3>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                      {copy.workflow.eyebrow}
+                    </p>
+                    <h3 className="mt-2 text-xl font-semibold text-slate-900">{copy.workflow.title}</h3>
                   </div>
                   <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand/10 text-brand">
                     <Sparkles className="h-6 w-6" />
                   </div>
                 </div>
                 <div className="mt-6 space-y-4">
-                  {[
-                    { label: "업로드 대기 시간", value: "1.2s" },
-                    { label: "평균 편집 완료", value: "3분" },
-                    { label: "반복 사용률", value: "94%" }
-                  ].map((stat) => (
+                  {copy.workflow.stats.map((stat) => (
                     <div key={stat.label} className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
                       <span className="text-sm text-slate-600">{stat.label}</span>
                       <span className="text-sm font-semibold text-slate-900">{stat.value}</span>
@@ -483,14 +385,12 @@ export default function Home() {
             className="grid gap-10 lg:grid-cols-[1fr_1.1fr]"
           >
             <div>
-              <p className="text-sm font-semibold uppercase tracking-wide text-brand">FAQ</p>
-              <h2 className="mt-3 text-3xl font-bold text-slate-900">자주 묻는 질문</h2>
-              <p className="mt-3 text-slate-600">
-                PDF Pro 사용 전 궁금한 점을 빠르게 확인하세요.
-              </p>
+              <p className="text-sm font-semibold uppercase tracking-wide text-brand">{copy.faq.eyebrow}</p>
+              <h2 className="mt-3 text-3xl font-bold text-slate-900">{copy.faq.title}</h2>
+              <p className="mt-3 text-slate-600">{copy.faq.description}</p>
             </div>
             <Accordion type="single" collapsible className="rounded-2xl border border-slate-200 bg-white/90 px-6">
-              {faqs.map((faq) => (
+              {copy.faq.items.map((faq) => (
                 <AccordionItem key={faq.question} value={faq.question}>
                   <AccordionTrigger>{faq.question}</AccordionTrigger>
                   <AccordionContent>{faq.answer}</AccordionContent>
@@ -513,16 +413,11 @@ export default function Home() {
             <p className="mt-3 text-sm text-slate-500">© 2025 PDF Pro. All rights reserved.</p>
           </div>
           <div className="flex flex-wrap items-center gap-4 text-sm text-slate-500">
-            <select className="rounded-full border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600">
-              <option>한국어</option>
-              <option>English</option>
-              <option>日本語</option>
-            </select>
             <a className="transition hover:text-slate-900" href="#">
-              서비스 약관
+              {copy.footer.terms}
             </a>
             <a className="transition hover:text-slate-900" href="#">
-              개인정보처리방침
+              {copy.footer.privacy}
             </a>
           </div>
         </div>

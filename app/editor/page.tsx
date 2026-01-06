@@ -22,8 +22,11 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { LocaleSwitcher } from "@/components/locale-switcher";
 import { cn } from "@/lib/utils";
 import { usePdfFiles } from "@/app/providers";
+import { useLocale } from "@/app/locale-provider";
+import { editorCopy } from "@/lib/copy";
 
 GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
 
@@ -303,6 +306,8 @@ function PdfCanvas({
 }
 
 function SignaturePad({ onChange }: { onChange: (value: string | null) => void }) {
+  const { locale } = useLocale();
+  const copy = editorCopy[locale];
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const drawing = useRef(false);
   const lastPoint = useRef<{ x: number; y: number } | null>(null);
@@ -414,9 +419,9 @@ function SignaturePad({ onChange }: { onChange: (value: string | null) => void }
         />
       </div>
       <div className="flex items-center justify-between text-sm text-slate-500">
-        <span>마우스/터치로 서명하세요.</span>
+        <span>{copy.signaturePad.hint}</span>
         <Button type="button" variant="ghost" size="sm" onClick={clearPad}>
-          지우기
+          {copy.signaturePad.clear}
         </Button>
       </div>
     </div>
@@ -424,6 +429,8 @@ function SignaturePad({ onChange }: { onChange: (value: string | null) => void }
 }
 
 function MergeTool({ initialFiles = [] }: { initialFiles?: File[] }) {
+  const { locale } = useLocale();
+  const copy = editorCopy[locale];
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [files, setFiles] = useState<StoredFile[]>([]);
   const [pages, setPages] = useState<PageItem[]>([]);
@@ -474,7 +481,7 @@ function MergeTool({ initialFiles = [] }: { initialFiles?: File[] }) {
   const addFileArray = useCallback(async (incomingFiles: File[]) => {
     const validFiles = incomingFiles.filter(isPdfFile);
     if (!validFiles.length) {
-      setError("PDF 파일만 업로드할 수 있습니다.");
+      setError(copy.errors.invalidFile);
       return;
     }
 
@@ -516,12 +523,12 @@ function MergeTool({ initialFiles = [] }: { initialFiles?: File[] }) {
 
         await pdf.destroy();
       } catch (err) {
-        setError("PDF를 불러오지 못했습니다. 다른 파일로 시도해주세요.");
+        setError(copy.errors.loadPdfRetry);
       }
     }
 
     setIsLoadingPages(false);
-  }, []);
+  }, [copy.errors.invalidFile, copy.errors.loadPdfRetry]);
 
   useEffect(() => {
     if (initialFiles.length && !initializedRef.current) {
@@ -571,7 +578,7 @@ function MergeTool({ initialFiles = [] }: { initialFiles?: File[] }) {
 
   const handleMerge = async () => {
     if (!pages.length) {
-      setError("병합할 페이지가 없습니다.");
+      setError(copy.errors.noMergePages);
       return;
     }
 
@@ -603,7 +610,7 @@ function MergeTool({ initialFiles = [] }: { initialFiles?: File[] }) {
       setMergeUrl(url);
       setIsPreviewOpen(true);
     } catch (err) {
-      setError("병합 중 오류가 발생했습니다. 다시 시도해주세요.");
+      setError(copy.errors.mergeFail);
     } finally {
       setIsMerging(false);
     }
@@ -611,22 +618,28 @@ function MergeTool({ initialFiles = [] }: { initialFiles?: File[] }) {
 
   const totalLabel = useMemo(() => {
     if (!files.length) {
-      return "PDF 파일을 추가하세요.";
+      return copy.merge.emptyTotal;
     }
 
-    return `${files.length}개 파일 · ${pages.length}페이지`;
-  }, [files.length, pages.length]);
+    const fileLabel = locale === "ko" ? `${files.length}개 파일` : `${files.length} files`;
+    const pageLabel = locale === "ko" ? `${pages.length}페이지` : `${pages.length} pages`;
+    return `${fileLabel} · ${pageLabel}`;
+  }, [files.length, pages.length, locale, copy.merge.emptyTotal]);
+
+  const pagesCountLabel = useMemo(() => {
+    return locale === "ko" ? `${pages.length} 페이지` : `${pages.length} pages`;
+  }, [pages.length, locale]);
 
   return (
     <div className="space-y-8">
       <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-soft-md">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-semibold text-slate-900">파일 선택</p>
-            <p className="text-xs text-slate-500">페이지 순서는 아래에서 편집합니다.</p>
+            <p className="text-sm font-semibold text-slate-900">{copy.merge.pickFiles}</p>
+            <p className="text-xs text-slate-500">{copy.merge.pickHint}</p>
           </div>
           <Button type="button" variant="outline" size="sm" onClick={() => inputRef.current?.click()}>
-            파일 추가
+            {copy.merge.addFiles}
           </Button>
           <input
             ref={inputRef}
@@ -660,8 +673,8 @@ function MergeTool({ initialFiles = [] }: { initialFiles?: File[] }) {
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand/10 text-brand">
             <FilePlus2 className="h-6 w-6" />
           </div>
-          <p className="mt-3 text-sm font-semibold text-slate-900">PDF를 놓아 병합하세요</p>
-          <p className="text-xs text-slate-500">여러 파일을 한 번에 드래그할 수 있어요.</p>
+          <p className="mt-3 text-sm font-semibold text-slate-900">{copy.merge.dropTitle}</p>
+          <p className="text-xs text-slate-500">{copy.merge.dropHint}</p>
         </div>
 
         <div className="mt-5 text-sm text-slate-500">{totalLabel}</div>
@@ -683,7 +696,7 @@ function MergeTool({ initialFiles = [] }: { initialFiles?: File[] }) {
                   type="button"
                   className="rounded-full p-2 text-slate-400 transition hover:bg-white hover:text-slate-600"
                   onClick={() => removeFile(entry.key)}
-                  aria-label="파일 제거"
+                  aria-label={copy.merge.aria.removeFile}
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -691,7 +704,7 @@ function MergeTool({ initialFiles = [] }: { initialFiles?: File[] }) {
             ))
           ) : (
             <p className="rounded-2xl border border-dashed border-slate-200 px-4 py-6 text-center text-xs text-slate-500">
-              추가된 파일이 없습니다.
+              {copy.merge.emptyFiles}
             </p>
           )}
         </div>
@@ -699,15 +712,13 @@ function MergeTool({ initialFiles = [] }: { initialFiles?: File[] }) {
         <div className="mt-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-semibold text-slate-900">페이지 순서</p>
-              <p className="text-xs text-slate-500">드래그로 페이지 순서를 변경하세요.</p>
+              <p className="text-sm font-semibold text-slate-900">{copy.merge.pageOrder}</p>
+              <p className="text-xs text-slate-500">{copy.merge.pageOrderHint}</p>
             </div>
-            <span className="text-xs text-slate-500">{pages.length} 페이지</span>
+            <span className="text-xs text-slate-500">{pagesCountLabel}</span>
           </div>
 
-          {isLoadingPages ? (
-            <p className="mt-3 text-xs text-slate-500">페이지를 불러오는 중입니다...</p>
-          ) : null}
+          {isLoadingPages ? <p className="mt-3 text-xs text-slate-500">{copy.merge.loadingPages}</p> : null}
 
           <div className="mt-4 space-y-3">
             {pages.map((page, index) => (
@@ -757,7 +768,9 @@ function MergeTool({ initialFiles = [] }: { initialFiles?: File[] }) {
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-slate-900">{page.fileName}</p>
-                    <p className="text-xs text-slate-500">페이지 {page.pageNumber}</p>
+                    <p className="text-xs text-slate-500">
+                      {locale === "ko" ? `페이지 ${page.pageNumber}` : `Page ${page.pageNumber}`}
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
@@ -765,7 +778,7 @@ function MergeTool({ initialFiles = [] }: { initialFiles?: File[] }) {
                     type="button"
                     className="rounded-full p-2 text-slate-400 transition hover:bg-white hover:text-slate-600 disabled:opacity-40"
                     onClick={() => movePage(index, Math.max(index - 1, 0))}
-                    aria-label="위로 이동"
+                    aria-label={copy.merge.aria.moveUp}
                     disabled={index === 0}
                   >
                     <ArrowUp className="h-4 w-4" />
@@ -774,7 +787,7 @@ function MergeTool({ initialFiles = [] }: { initialFiles?: File[] }) {
                     type="button"
                     className="rounded-full p-2 text-slate-400 transition hover:bg-white hover:text-slate-600 disabled:opacity-40"
                     onClick={() => movePage(index, Math.min(index + 1, pages.length - 1))}
-                    aria-label="아래로 이동"
+                    aria-label={copy.merge.aria.moveDown}
                     disabled={index === pages.length - 1}
                   >
                     <ArrowDown className="h-4 w-4" />
@@ -783,7 +796,7 @@ function MergeTool({ initialFiles = [] }: { initialFiles?: File[] }) {
                     type="button"
                     className="rounded-full p-2 text-slate-400 transition hover:bg-white hover:text-slate-600"
                     onClick={() => removePage(page.id)}
-                    aria-label="페이지 제거"
+                    aria-label={copy.merge.aria.removePage}
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -794,7 +807,7 @@ function MergeTool({ initialFiles = [] }: { initialFiles?: File[] }) {
 
           {!pages.length && !isLoadingPages ? (
             <p className="mt-4 rounded-2xl border border-dashed border-slate-200 px-4 py-6 text-center text-xs text-slate-500">
-              페이지가 없습니다. PDF를 추가해주세요.
+              {copy.merge.emptyPages}
             </p>
           ) : null}
         </div>
@@ -803,12 +816,12 @@ function MergeTool({ initialFiles = [] }: { initialFiles?: File[] }) {
 
         <div className="mt-6 flex flex-wrap gap-3">
           <Button onClick={handleMerge} disabled={isMerging || isLoadingPages || !pages.length}>
-            {isMerging ? "미리보기 생성 중..." : "병합 후 미리보기"}
+            {isMerging ? copy.merge.previewLoading : copy.merge.previewIdle}
           </Button>
           {mergeUrl ? (
             <Button asChild variant="outline">
               <a href={mergeUrl} download="merged.pdf">
-                병합 파일 다운로드
+                {copy.merge.downloadMerged}
                 <Download className="h-4 w-4" />
               </a>
             </Button>
@@ -827,8 +840,8 @@ function MergeTool({ initialFiles = [] }: { initialFiles?: File[] }) {
           >
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-6 py-4">
               <div>
-                <p className="text-sm font-semibold text-slate-900">병합 미리보기</p>
-                <p className="text-xs text-slate-500">페이지를 넘기며 확인하세요.</p>
+                <p className="text-sm font-semibold text-slate-900">{copy.merge.previewTitle}</p>
+                <p className="text-xs text-slate-500">{copy.merge.previewHint}</p>
               </div>
               <div className="flex items-center gap-2 text-xs text-slate-500">
                 <Button
@@ -853,7 +866,7 @@ function MergeTool({ initialFiles = [] }: { initialFiles?: File[] }) {
                   <ArrowRight className="h-4 w-4" />
                 </Button>
                 <Button type="button" variant="outline" size="sm" onClick={() => setIsPreviewOpen(false)}>
-                  닫기
+                  {copy.merge.close}
                 </Button>
               </div>
             </div>
@@ -878,6 +891,8 @@ function MergeTool({ initialFiles = [] }: { initialFiles?: File[] }) {
 }
 
 function SignTool({ initialFile }: { initialFile?: File | null }) {
+  const { locale } = useLocale();
+  const copy = editorCopy[locale];
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [pdfBytes, setPdfBytes] = useState<Uint8Array | null>(null);
   const [pdfName, setPdfName] = useState<string | null>(null);
@@ -965,7 +980,7 @@ function SignTool({ initialFile }: { initialFile?: File | null }) {
     }
 
     if (!isPdfFile(file)) {
-      setError("PDF 파일만 업로드할 수 있습니다.");
+      setError(copy.errors.invalidFile);
       return;
     }
 
@@ -988,7 +1003,7 @@ function SignTool({ initialFile }: { initialFile?: File | null }) {
       setActivePage(1);
       await pdf.destroy();
     } catch (err) {
-      setError("PDF를 불러오지 못했습니다.");
+      setError(copy.errors.loadPdf);
     } finally {
       setIsLoadingPages(false);
     }
@@ -1014,7 +1029,7 @@ function SignTool({ initialFile }: { initialFile?: File | null }) {
 
   const handleApplySignature = async () => {
     if (!pdfBytes || !signatureDataUrl || !signatureBox || !pageInfo) {
-      setError("PDF 업로드, 서명 작성, 위치 지정이 모두 필요합니다.");
+      setError(copy.errors.signMissing);
       return;
     }
 
@@ -1042,7 +1057,7 @@ function SignTool({ initialFile }: { initialFile?: File | null }) {
       setPdfBytes(updatedBytes);
       setOutputUrl(url);
     } catch (err) {
-      setError("서명 적용 중 오류가 발생했습니다.");
+      setError(copy.errors.signFail);
     } finally {
       setIsSigning(false);
     }
@@ -1071,11 +1086,11 @@ function SignTool({ initialFile }: { initialFile?: File | null }) {
       <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-soft-md">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-semibold text-slate-900">PDF 업로드</p>
-            <p className="text-xs text-slate-500">미리보기에서 서명 위치를 지정하세요.</p>
+            <p className="text-sm font-semibold text-slate-900">{copy.sign.uploadTitle}</p>
+            <p className="text-xs text-slate-500">{copy.sign.uploadHint}</p>
           </div>
           <Button type="button" variant="outline" size="sm" onClick={() => inputRef.current?.click()}>
-            PDF 선택
+            {copy.sign.selectPdf}
           </Button>
           <input
             ref={inputRef}
@@ -1090,12 +1105,16 @@ function SignTool({ initialFile }: { initialFile?: File | null }) {
         </div>
 
         <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
-          {pdfName ? `선택된 파일: ${pdfName}` : "PDF 파일을 선택해주세요."}
+          {pdfName
+            ? locale === "ko"
+              ? `선택된 파일: ${pdfName}`
+              : `Selected file: ${pdfName}`
+            : copy.sign.emptyPdf}
         </div>
 
         {pageCount > 1 ? (
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs text-slate-500">
-            <span>페이지 선택</span>
+            <span>{copy.sign.pageSelect}</span>
             <div className="flex items-center gap-2">
               <Button
                 type="button"
@@ -1126,7 +1145,7 @@ function SignTool({ initialFile }: { initialFile?: File | null }) {
               >
                 {Array.from({ length: pageCount }, (_, index) => (
                   <option key={index + 1} value={index + 1}>
-                    {index + 1} 페이지
+                    {locale === "ko" ? `${index + 1} 페이지` : `Page ${index + 1}`}
                   </option>
                 ))}
               </select>
@@ -1134,9 +1153,7 @@ function SignTool({ initialFile }: { initialFile?: File | null }) {
           </div>
         ) : null}
 
-        {isLoadingPages ? (
-          <p className="mt-3 text-xs text-slate-500">페이지 정보를 불러오는 중...</p>
-        ) : null}
+        {isLoadingPages ? <p className="mt-3 text-xs text-slate-500">{copy.sign.loadingPages}</p> : null}
 
         <div className="mt-5">
           {pdfBytes ? (
@@ -1161,7 +1178,7 @@ function SignTool({ initialFile }: { initialFile?: File | null }) {
                   {signatureDataUrl && !currentPlacement ? (
                     <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
                       <div className="rounded-full border border-slate-200 bg-white/95 px-4 py-2 text-xs font-semibold text-slate-700 shadow-soft-md">
-                        미리보기에서 서명 위치를 클릭하세요
+                        {copy.sign.previewHint}
                       </div>
                     </div>
                   ) : null}
@@ -1171,7 +1188,7 @@ function SignTool({ initialFile }: { initialFile?: File | null }) {
           ) : (
             <div className="flex h-[420px] flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-slate-200 text-center text-sm text-slate-500">
               <FileUp className="h-8 w-8 text-slate-400" />
-              PDF를 업로드하면 미리보기가 표시됩니다.
+              {copy.sign.emptyPreview}
             </div>
           )}
         </div>
@@ -1179,13 +1196,13 @@ function SignTool({ initialFile }: { initialFile?: File | null }) {
 
       <div className="space-y-6 lg:sticky lg:top-24 lg:self-start landscape-unset">
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-soft-md">
-          <p className="text-sm font-semibold text-slate-900">서명 진행 단계</p>
-          <p className="mt-2 text-xs text-slate-500">아래 순서대로 진행하면 됩니다.</p>
+          <p className="text-sm font-semibold text-slate-900">{copy.sign.stepsTitle}</p>
+          <p className="mt-2 text-xs text-slate-500">{copy.sign.stepsHint}</p>
           <div className="mt-4 space-y-3 text-xs text-slate-600">
             {[
-              { label: "PDF 업로드", done: Boolean(pdfBytes) },
-              { label: "서명 만들기", done: Boolean(signatureDataUrl) },
-              { label: "미리보기에서 위치 클릭", done: Boolean(currentPlacement) }
+              { label: copy.sign.steps[0], done: Boolean(pdfBytes) },
+              { label: copy.sign.steps[1], done: Boolean(signatureDataUrl) },
+              { label: copy.sign.steps[2], done: Boolean(currentPlacement) }
             ].map((step, index) => (
               <div
                 key={step.label}
@@ -1204,28 +1221,26 @@ function SignTool({ initialFile }: { initialFile?: File | null }) {
         </div>
 
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-soft-md">
-          <p className="text-sm font-semibold text-slate-900">서명 만들기</p>
-          <p className="mt-2 text-xs text-slate-500">서명 후 바로 PDF에 적용할 수 있어요.</p>
+          <p className="text-sm font-semibold text-slate-900">{copy.sign.createTitle}</p>
+          <p className="mt-2 text-xs text-slate-500">{copy.sign.createHint}</p>
           <div className="mt-4">
             <SignaturePad onChange={setSignatureDataUrl} />
           </div>
           {signatureDataUrl ? (
             <div className="mt-4 flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3">
-              <img
-                src={signatureDataUrl}
-                alt="서명 미리보기"
-                className="h-10 w-auto"
-              />
-              <span className="text-xs text-slate-500">저장된 서명</span>
+              <img src={signatureDataUrl} alt={copy.signaturePad.previewAlt} className="h-10 w-auto" />
+              <span className="text-xs text-slate-500">{copy.signaturePad.saved}</span>
             </div>
           ) : null}
         </div>
 
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-soft-md">
-          <p className="text-sm font-semibold text-slate-900">서명 설정</p>
+          <p className="text-sm font-semibold text-slate-900">{copy.sign.settingsTitle}</p>
           <div className="mt-4 space-y-4 text-sm text-slate-600">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">크기</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                {copy.sign.sizeLabel}
+              </p>
               <input
                 type="range"
                 min={0.15}
@@ -1237,23 +1252,23 @@ function SignTool({ initialFile }: { initialFile?: File | null }) {
               />
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">위치</p>
-              <p className="mt-2 text-sm text-slate-500">
-                PDF 미리보기를 클릭해 서명 위치를 지정하세요.
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                {copy.sign.positionLabel}
               </p>
+              <p className="mt-2 text-sm text-slate-500">{copy.sign.positionHint}</p>
             </div>
           </div>
 
           {!canApplySignature && !error ? (
             <p className="mt-4 text-xs text-slate-500">
-              PDF 업로드 → 서명 작성 → 미리보기 클릭 순서로 진행하세요.
+              {copy.sign.guidance}
             </p>
           ) : null}
           {error ? <p className="mt-4 text-sm text-red-500">{error}</p> : null}
 
           <div className="mt-5 flex flex-wrap gap-3">
             <Button onClick={handleApplySignature} disabled={isSigning || !canApplySignature}>
-              {isSigning ? "서명 적용 중..." : "서명 적용"}
+              {isSigning ? copy.sign.applyLoading : copy.sign.applyIdle}
               <PenTool className="h-4 w-4" />
             </Button>
             <Button
@@ -1262,7 +1277,7 @@ function SignTool({ initialFile }: { initialFile?: File | null }) {
               onClick={handleUndoSignature}
               disabled={!canUndoSignature || isSigning}
             >
-              서명 되돌리기
+              {copy.sign.undo}
             </Button>
             {outputUrl ? (
               <Button asChild variant="outline">
@@ -1270,7 +1285,7 @@ function SignTool({ initialFile }: { initialFile?: File | null }) {
                   href={outputUrl}
                   download={pdfName ? `${pdfName.replace(/\.pdf$/i, "")}-signed.pdf` : "signed.pdf"}
                 >
-                  서명된 PDF 다운로드
+                  {copy.sign.downloadSigned}
                   <Download className="h-4 w-4" />
                 </a>
               </Button>
@@ -1287,6 +1302,8 @@ export default function EditorPage() {
   const [prefillFiles, setPrefillFiles] = useState<File[]>([]);
   const [activeTool, setActiveTool] = useState<"merge" | "sign">("merge");
   const didSetInitialTool = useRef(false);
+  const { locale } = useLocale();
+  const copy = editorCopy[locale];
 
   useEffect(() => {
     if (queuedFiles.length) {
@@ -1313,16 +1330,19 @@ export default function EditorPage() {
             <Button asChild variant="ghost" size="sm">
               <Link href="/">
                 <ArrowLeft className="h-4 w-4" />
-                홈으로
+                {copy.header.back}
               </Link>
             </Button>
           </div>
           <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
             <Layers className="h-4 w-4 text-brand" />
-            PDF Pro 편집 스튜디오
+            {copy.header.title}
           </div>
-          <div className="hidden items-center gap-2 text-xs text-slate-500 md:flex">
-            저장 없이 로컬에서 처리됩니다.
+          <div className="flex items-center gap-3">
+            <LocaleSwitcher className="shrink-0" />
+            <div className="hidden items-center gap-2 text-xs text-slate-500 md:flex">
+              {copy.header.subtitle}
+            </div>
           </div>
         </div>
       </header>
@@ -1334,19 +1354,17 @@ export default function EditorPage() {
           transition={{ duration: 0.5 }}
           className="flex flex-col gap-3"
         >
-          <p className="text-sm font-semibold uppercase tracking-wide text-brand">PDF Utility</p>
+          <p className="text-sm font-semibold uppercase tracking-wide text-brand">{copy.hero.eyebrow}</p>
           <h1 className="text-3xl font-bold text-slate-900 md:text-4xl">
-            페이지 병합과 서명 추가를 지금 바로 처리하세요
+            {copy.hero.title}
           </h1>
-          <p className="text-base text-slate-600">
-            파일은 브라우저에서만 처리되며, 편집 후 즉시 다운로드할 수 있습니다.
-          </p>
+          <p className="text-base text-slate-600">{copy.hero.description}</p>
         </motion.div>
 
         <div className="mt-8 grid gap-4 md:grid-cols-2 landscape-stack">
           {[
-            { id: "merge", label: "페이지 병합", description: "여러 PDF를 한 파일로" },
-            { id: "sign", label: "서명 추가", description: "미리보기에서 바로 서명" }
+            { id: "merge", ...copy.tools.merge },
+            { id: "sign", ...copy.tools.sign }
           ].map((tool) => (
             <button
               key={tool.id}
