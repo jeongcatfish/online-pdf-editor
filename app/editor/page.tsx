@@ -29,6 +29,13 @@ import { useLocale } from "@/app/locale-provider";
 import { editorCopy } from "@/lib/copy";
 
 GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
+// Needed for proper rendering of CJK and other non-standard fonts in PDF.js.
+const PDFJS_OPTIONS = {
+  cMapUrl: "/cmaps/",
+  cMapPacked: true,
+  standardFontDataUrl: "/standard_fonts/",
+  useSystemFonts: true
+} as const;
 
 type Size = {
   width: number;
@@ -222,7 +229,7 @@ function PdfCanvas({
       }
 
       const dataCopy = data.slice();
-      const loadingTask = getDocument({ data: dataCopy });
+      const loadingTask = getDocument({ data: dataCopy, ...PDFJS_OPTIONS });
       loadingTaskRef.current = loadingTask;
       const pdf = await loadingTask.promise;
 
@@ -521,7 +528,7 @@ function MergeTool({ initialFiles = [] }: { initialFiles?: File[] }) {
       try {
         const bytes = new Uint8Array(await file.arrayBuffer());
         const previewBytes = bytes.slice();
-        const pdf = await getDocument({ data: previewBytes }).promise;
+        const pdf = await getDocument({ data: previewBytes, ...PDFJS_OPTIONS }).promise;
         const fileKey = createFileKey(file);
         const entry: StoredFile = {
           key: fileKey,
@@ -1060,7 +1067,7 @@ function SignTool({ initialFile }: { initialFile?: File | null }) {
 
     try {
       const previewBytes = bytes.slice();
-      const pdf = await getDocument({ data: previewBytes }).promise;
+      const pdf = await getDocument({ data: previewBytes, ...PDFJS_OPTIONS }).promise;
       setPageCount(pdf.numPages);
       setActivePage(1);
       await pdf.destroy();
