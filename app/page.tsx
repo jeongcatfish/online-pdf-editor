@@ -92,7 +92,7 @@ export default function Home() {
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand/10 text-brand">
                 <FileText className="h-5 w-5" />
               </div>
-              <span className="text-lg font-bold text-slate-900">PDF Pro</span>
+              <span className="text-lg font-bold text-slate-900">PDF Now</span>
             </div>
             <nav className="hidden items-center gap-8 text-sm font-medium text-slate-600 md:flex">
               <a className="transition hover:text-slate-900" href="#how">
@@ -408,9 +408,9 @@ export default function Home() {
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand/10 text-brand">
                 <FileText className="h-4 w-4" />
               </div>
-              <span className="text-base font-bold text-slate-900">PDF Pro</span>
+              <span className="text-base font-bold text-slate-900">PDF Now</span>
             </div>
-            <p className="mt-3 text-sm text-slate-500">© 2025 PDF Pro. All rights reserved.</p>
+            <p className="mt-3 text-sm text-slate-500">© 2025 PDF Now. All rights reserved.</p>
           </div>
           <div className="flex flex-wrap items-center gap-4 text-sm text-slate-500">
             <a className="transition hover:text-slate-900" href="#">

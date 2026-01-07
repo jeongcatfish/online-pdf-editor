@@ -2,11 +2,11 @@ import type { Locale } from "./locale";
 
 export const siteMeta = {
   ko: {
-    title: "PDF Pro - 온라인 PDF 편집기",
+    title: "PDF Now - 온라인 PDF 편집기",
     description: "브라우저에서 바로 PDF 변환, 편집, 서명을 무료로 처리하세요."
   },
   en: {
-    title: "PDF Pro - Online PDF Editor",
+    title: "PDF Now - Online PDF Editor",
     description: "Convert, edit, and sign PDFs in your browser for free."
   }
 } as const satisfies Record<Locale, { title: string; description: string }>;
@@ -114,7 +114,7 @@ export const homeCopy = {
     },
     benefits: {
       eyebrow: "혜택",
-      title: "PDF Pro를 선택하는 이유",
+      title: "PDF Now를 선택하는 이유",
       description: "필요한 작업을 빠르게 처리하고, 보안과 사용성을 함께 제공합니다.",
       bullets: [
         "브라우저 기반으로 설치 없이 즉시 사용",
@@ -136,7 +136,7 @@ export const homeCopy = {
     faq: {
       eyebrow: "FAQ",
       title: "자주 묻는 질문",
-      description: "PDF Pro 사용 전 궁금한 점을 빠르게 확인하세요.",
+      description: "PDF Now 사용 전 궁금한 점을 빠르게 확인하세요.",
       items: [
         {
           question: "정말 무료인가요?",
@@ -262,7 +262,7 @@ export const homeCopy = {
     },
     benefits: {
       eyebrow: "Benefits",
-      title: "Why choose PDF Pro",
+      title: "Why choose PDF Now",
       description: "Get work done fast with security and usability built in.",
       bullets: [
         "Use instantly in the browser, no installs",
@@ -284,7 +284,7 @@ export const homeCopy = {
     faq: {
       eyebrow: "FAQ",
       title: "Frequently asked questions",
-      description: "Get quick answers before you start with PDF Pro.",
+      description: "Get quick answers before you start with PDF Now.",
       items: [
         {
           question: "Is it really free?",
@@ -381,7 +381,7 @@ export const editorCopy = {
     },
     header: {
       back: "홈으로",
-      title: "PDF Pro 편집 스튜디오",
+      title: "PDF Now 편집 스튜디오",
       subtitle: "저장 없이 로컬에서 처리됩니다."
     },
     hero: {
@@ -461,7 +461,7 @@ export const editorCopy = {
     },
     header: {
       back: "Back home",
-      title: "PDF Pro Studio",
+      title: "PDF Now Studio",
       subtitle: "Processed locally with no storage."
     },
     hero: {
