@@ -41,41 +41,16 @@ export const homeCopy = {
     toolsSection: {
       eyebrow: "주요 기능",
       title: "PDF를 위한 올인원 도구 세트",
-      description: "편집부터 보안까지, 필요한 모든 작업을 한 번에 해결하세요.",
-      button: "더 많은 기능"
+      description: "페이지 병합과 서명을 브라우저에서 바로 처리하세요."
     },
     features: [
-      {
-        title: "PDF 편집",
-        description: "텍스트, 이미지, 링크를 브라우저에서 바로 수정하세요."
-      },
-      {
-        title: "Word로 변환",
-        description: "레이아웃을 유지한 채 DOCX로 빠르게 변환합니다."
-      },
-      {
-        title: "이미지 추출",
-        description: "PDF 속 모든 이미지를 일괄 추출해 저장합니다."
-      },
       {
         title: "페이지 병합",
         description: "여러 문서를 한 번에 드래그해 병합하세요."
       },
       {
         title: "서명 추가",
-        description: "전자 서명을 올려 클릭 한 번에 승인합니다."
-      },
-      {
-        title: "암호 설정",
-        description: "문서 암호화와 접근 권한을 간편하게 관리합니다."
-      },
-      {
-        title: "페이지 분할",
-        description: "필요한 페이지만 추출해 새 문서를 만듭니다."
-      },
-      {
-        title: "보안 검증",
-        description: "민감한 파일도 안전하게 처리하는 보안 설계."
+        description: "서명을 작성하고 클릭 한 번으로 문서에 추가하세요."
       }
     ],
     usageSection: {
@@ -114,11 +89,11 @@ export const homeCopy = {
     },
     benefits: {
       eyebrow: "혜택",
-      title: "PDF Now를 선택하는 이유",
+      title: "PDF Now를 선택해야 하는 이유",
       description: "필요한 작업을 빠르게 처리하고, 보안과 사용성을 함께 제공합니다.",
       bullets: [
         "브라우저 기반으로 설치 없이 즉시 사용",
-        "문서 버전 관리와 협업 히스토리 제공",
+        "문서 버전 관리 제공",
         "자주 쓰는 작업을 빠르게 이어주는 템플릿 제공"
       ],
       primaryCta: "바로 시작",
@@ -190,22 +165,9 @@ export const homeCopy = {
     toolsSection: {
       eyebrow: "Key features",
       title: "An all-in-one toolkit for PDFs",
-      description: "From editing to security, everything you need in one place.",
-      button: "See more tools"
+      description: "Merge pages and add signatures right in your browser."
     },
     features: [
-      {
-        title: "Edit PDFs",
-        description: "Edit text, images, and links directly in your browser."
-      },
-      {
-        title: "Convert to Word",
-        description: "Quickly convert to DOCX while preserving layout."
-      },
-      {
-        title: "Extract images",
-        description: "Export every image from your PDF at once."
-      },
       {
         title: "Merge pages",
         description: "Drag multiple documents to merge in one go."
@@ -213,18 +175,6 @@ export const homeCopy = {
       {
         title: "Add signatures",
         description: "Place e-signatures and approve with one click."
-      },
-      {
-        title: "Set passwords",
-        description: "Manage encryption and access permissions easily."
-      },
-      {
-        title: "Split pages",
-        description: "Extract only the pages you need into a new PDF."
-      },
-      {
-        title: "Security checks",
-        description: "Built-in security for sensitive files."
       }
     ],
     usageSection: {

@@ -6,15 +6,10 @@ import { useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowRight,
-  Edit3,
   FileText,
   FileUp,
-  Files,
-  Image,
   Layers,
-  Lock,
   PenTool,
-  ShieldCheck,
   Sparkles,
   UploadCloud
 } from "lucide-react";
@@ -27,7 +22,7 @@ import { cn } from "@/lib/utils";
 import { usePdfFiles } from "@/app/providers";
 import { homeCopy } from "@/lib/copy";
 
-const featureIcons = [Edit3, FileText, Image, Layers, PenTool, Lock, Files, ShieldCheck];
+const featureIcons = [Layers, PenTool];
 const stepIcons = [UploadCloud, Sparkles, FileUp];
 
 export default function Home() {
@@ -212,7 +207,7 @@ export default function Home() {
             viewport={{ once: true, amount: 0.2 }}
             transition={{ duration: 0.6 }}
           >
-            <div className="flex items-end justify-between gap-6">
+            <div className="flex items-end gap-6">
               <div>
                 <p className="text-sm font-semibold uppercase tracking-wide text-brand">
                   {copy.toolsSection.eyebrow}
@@ -220,11 +215,8 @@ export default function Home() {
                 <h2 className="mt-3 text-3xl font-bold text-slate-900">{copy.toolsSection.title}</h2>
                 <p className="mt-2 text-slate-600">{copy.toolsSection.description}</p>
               </div>
-              <Button variant="outline" className="hidden md:inline-flex">
-                {copy.toolsSection.button}
-              </Button>
             </div>
-            <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mt-10 grid gap-6 sm:grid-cols-2">
               {copy.features.map((feature, index) => {
                 const Icon = featureIcons[index];
                 return (
