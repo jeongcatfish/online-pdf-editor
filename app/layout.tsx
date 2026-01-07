@@ -22,7 +22,7 @@ function getMetadataBase(): URL {
     return new URL(`${protocol}://${host}`);
   }
 
-  return new URL("https://pdfnow.app");
+  return new URL("https://pdfnow.xyz");
 }
 
 export function generateMetadata(): Metadata {
