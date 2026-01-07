@@ -24,7 +24,7 @@ export const homeCopy = {
     },
     hero: {
       badge: "온라인 PDF 도구",
-      title: "온라인에서 간단하게 PDF 작업",
+      title: "간단하게 온라인 PDF 작업",
       subtitle: "PDF 병합, 서명, 변환을 브라우저에서 처리하세요.",
       bookmarkHint: "이 페이지를 북마크하세요",
       chips: ["완전 무료", "설치 없음", "대용량 지원"]
@@ -41,7 +41,7 @@ export const homeCopy = {
     ],
     toolsSection: {
       eyebrow: "주요 기능",
-      title: "PDF를 위한 올인원 도구 세트",
+      title: "PDF를 위한 도구 세트",
       description: "페이지 병합과 서명을 브라우저에서 바로 처리하세요."
     },
     features: [
