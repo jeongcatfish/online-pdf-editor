@@ -296,7 +296,7 @@ export const editorCopy = {
       previewLoading: "미리보기 생성 중...",
       downloadMerged: "병합 파일 다운로드",
       previewTitle: "병합 미리보기",
-      previewHint: "페이지를 넘기며 확인하세요.",
+      previewHint: "스크롤로 페이지를 확인하세요.",
       close: "닫기",
       aria: {
         removeFile: "파일 제거",
@@ -376,7 +376,7 @@ export const editorCopy = {
       previewLoading: "Generating preview...",
       downloadMerged: "Download merged PDF",
       previewTitle: "Merged preview",
-      previewHint: "Flip through pages to review.",
+      previewHint: "Scroll to review pages.",
       close: "Close",
       aria: {
         removeFile: "Remove file",

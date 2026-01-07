@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { MouseEvent, PointerEvent } from "react";
+import type { MouseEvent, PointerEvent, UIEvent } from "react";
 import { motion } from "framer-motion";
 import { PDFDocument } from "pdf-lib";
 import { GlobalWorkerOptions, getDocument } from "pdfjs-dist";
@@ -57,15 +57,18 @@ type PageItem = {
 };
 
 function useElementSize<T extends HTMLElement>() {
-  const ref = useRef<T | null>(null);
+  const [element, setElement] = useState<T | null>(null);
   const [size, setSize] = useState<Size>({ width: 0, height: 0 });
 
+  const ref = useCallback((node: T | null) => {
+    setElement(node);
+  }, []);
+
   useEffect(() => {
-    if (!ref.current) {
+    if (!element) {
       return;
     }
 
-    const element = ref.current;
     const observer = new ResizeObserver((entries) => {
       const entry = entries[0];
       if (!entry) {
@@ -81,9 +84,9 @@ function useElementSize<T extends HTMLElement>() {
     observer.observe(element);
 
     return () => observer.disconnect();
-  }, []);
+  }, [element]);
 
-  return { ref, size };
+  return { ref, size, element };
 }
 
 function clamp(value: number, min: number, max: number) {
@@ -441,6 +444,9 @@ function MergeTool({ initialFiles = [] }: { initialFiles?: File[] }) {
   const [mergeBytes, setMergeBytes] = useState<Uint8Array | null>(null);
   const [previewPage, setPreviewPage] = useState(1);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const { ref: previewScrollRef, size: previewScrollSize, element: previewScrollElement } =
+    useElementSize<HTMLDivElement>();
+  const previewScrollRafRef = useRef<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pageDragIndex, setPageDragIndex] = useState<number | null>(null);
   const [pageDragOverIndex, setPageDragOverIndex] = useState<number | null>(null);
@@ -462,6 +468,26 @@ function MergeTool({ initialFiles = [] }: { initialFiles?: File[] }) {
 
     setPreviewPage((current) => clamp(current, 1, pages.length));
   }, [pages.length]);
+
+  useEffect(() => {
+    if (!isPreviewOpen) {
+      return;
+    }
+
+    setPreviewPage(1);
+    if (previewScrollElement) {
+      previewScrollElement.scrollTop = 0;
+    }
+  }, [isPreviewOpen, previewScrollElement]);
+
+  useEffect(() => {
+    return () => {
+      if (previewScrollRafRef.current) {
+        cancelAnimationFrame(previewScrollRafRef.current);
+        previewScrollRafRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!isPreviewOpen) {
@@ -629,6 +655,47 @@ function MergeTool({ initialFiles = [] }: { initialFiles?: File[] }) {
   const pagesCountLabel = useMemo(() => {
     return locale === "ko" ? `${pages.length} 페이지` : `${pages.length} pages`;
   }, [pages.length, locale]);
+
+  const previewItemHeight = useMemo(() => {
+    return previewScrollSize.height || 0;
+  }, [previewScrollSize.height]);
+
+  const handlePreviewScroll = useCallback(
+    (_event: UIEvent<HTMLDivElement>) => {
+      if (!pages.length) {
+        return;
+      }
+
+      if (previewScrollRafRef.current) {
+        return;
+      }
+
+      previewScrollRafRef.current = requestAnimationFrame(() => {
+        previewScrollRafRef.current = null;
+        const container = previewScrollElement;
+        if (!container) {
+          return;
+        }
+
+        const midpoint = container.scrollTop + container.clientHeight / 2;
+        const items = Array.from(
+          container.querySelectorAll<HTMLElement>("[data-preview-page]")
+        );
+        for (const item of items) {
+          if (midpoint <= item.offsetTop + item.offsetHeight) {
+            const page = Number(item.dataset.previewPage);
+            if (Number.isFinite(page)) {
+              setPreviewPage(page);
+            }
+            return;
+          }
+        }
+
+        setPreviewPage(pages.length);
+      });
+    },
+    [pages.length, previewScrollElement]
+  );
 
   return (
     <div className="space-y-8">
@@ -843,46 +910,41 @@ function MergeTool({ initialFiles = [] }: { initialFiles?: File[] }) {
                 <p className="text-sm font-semibold text-slate-900">{copy.merge.previewTitle}</p>
                 <p className="text-xs text-slate-500">{copy.merge.previewHint}</p>
               </div>
-              <div className="flex items-center gap-2 text-xs text-slate-500">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setPreviewPage((current) => Math.max(current - 1, 1))}
-                  disabled={previewPage <= 1}
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                </Button>
+              <div className="flex items-center gap-3 text-xs text-slate-500">
                 <span>
                   {previewPage} / {pages.length}
                 </span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setPreviewPage((current) => Math.min(current + 1, pages.length))}
-                  disabled={previewPage >= pages.length}
-                >
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
                 <Button type="button" variant="outline" size="sm" onClick={() => setIsPreviewOpen(false)}>
                   {copy.merge.close}
                 </Button>
               </div>
             </div>
-            <div className="flex-1 overflow-hidden bg-slate-50 p-6">
-              <div className="flex h-[70vh] items-center justify-center md:h-[72vh]">
-                <div className="h-full w-full max-w-3xl">
-                  <PdfCanvas
-                  data={mergeBytes}
-                  pageNumber={previewPage}
-                  fit="contain"
-                  className="h-full"
-                  canvasClassName="mx-auto"
-                />
+            <div
+              ref={previewScrollRef}
+              className="flex-1 overflow-y-auto bg-slate-50 overscroll-contain"
+              onScroll={handlePreviewScroll}
+            >
+              <div className="mx-auto flex w-full max-w-3xl flex-col">
+                {Array.from({ length: pages.length }, (_, index) => (
+                  <div
+                    key={index + 1}
+                    data-preview-page={index + 1}
+                    className="flex items-center justify-center px-6 py-6"
+                    style={previewItemHeight ? { height: previewItemHeight } : undefined}
+                  >
+                    <div className="h-full w-full">
+                      <PdfCanvas
+                        data={mergeBytes}
+                        pageNumber={index + 1}
+                        fit="contain"
+                        className="h-full"
+                        canvasClassName="mx-auto"
+                      />
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-          </div>
           </div>
         </div>
       ) : null}
