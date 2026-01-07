@@ -698,9 +698,9 @@ function MergeTool({ initialFiles = [] }: { initialFiles?: File[] }) {
   );
 
   return (
-    <div className="space-y-8">
-      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-soft-md">
-        <div className="flex items-center justify-between">
+    <div className="space-y-6 sm:space-y-8">
+      <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-soft-md sm:p-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-semibold text-slate-900">{copy.merge.pickFiles}</p>
             <p className="text-xs text-slate-500">{copy.merge.pickHint}</p>
@@ -746,22 +746,22 @@ function MergeTool({ initialFiles = [] }: { initialFiles?: File[] }) {
 
         <div className="mt-5 text-sm text-slate-500">{totalLabel}</div>
 
-        <div className="mt-4 space-y-3">
+          <div className="mt-4 space-y-3">
           {files.length ? (
             files.map((entry) => (
               <div
                 key={entry.key}
-                className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3"
+                className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
               >
-                <div>
-                  <p className="text-sm font-semibold text-slate-900">{entry.file.name}</p>
-                  <p className="text-xs text-slate-500">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-slate-900 break-words">{entry.file.name}</p>
+                  <p className="text-xs text-slate-500 break-words">
                     {entry.pageCount}p · {(entry.file.size / 1024 / 1024).toFixed(2)} MB
                   </p>
                 </div>
                 <button
                   type="button"
-                  className="rounded-full p-2 text-slate-400 transition hover:bg-white hover:text-slate-600"
+                  className="self-start rounded-full p-2 text-slate-400 transition hover:bg-white hover:text-slate-600 sm:self-auto"
                   onClick={() => removeFile(entry.key)}
                   aria-label={copy.merge.aria.removeFile}
                 >
@@ -777,7 +777,7 @@ function MergeTool({ initialFiles = [] }: { initialFiles?: File[] }) {
         </div>
 
         <div className="mt-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-sm font-semibold text-slate-900">{copy.merge.pageOrder}</p>
               <p className="text-xs text-slate-500">{copy.merge.pageOrderHint}</p>
@@ -792,7 +792,7 @@ function MergeTool({ initialFiles = [] }: { initialFiles?: File[] }) {
               <div
                 key={page.id}
                 className={cn(
-                  "flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 transition",
+                  "flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 transition sm:flex-row sm:items-center sm:justify-between",
                   pageDragOverIndex === index ? "border-brand/60 bg-brand/5" : "border-slate-200"
                 )}
                 draggable
@@ -824,23 +824,23 @@ function MergeTool({ initialFiles = [] }: { initialFiles?: File[] }) {
                   setPageDragOverIndex(null);
                 }}
               >
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3 sm:flex-nowrap">
                   <GripVertical className="h-4 w-4 text-slate-400" />
-                  <div className="flex h-24 w-20 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-white">
+                  <div className="flex h-20 w-16 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-white sm:h-24 sm:w-20">
                     {page.thumbUrl ? (
                       <img src={page.thumbUrl} alt={`${page.fileName} ${page.pageNumber}`} />
                     ) : (
                       <span className="text-[10px] text-slate-400">{page.pageNumber}</span>
                     )}
                   </div>
-                  <div>
-                    <p className="text-sm font-semibold text-slate-900">{page.fileName}</p>
-                    <p className="text-xs text-slate-500">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-slate-900 break-words">{page.fileName}</p>
+                    <p className="text-xs text-slate-500 break-words">
                       {locale === "ko" ? `페이지 ${page.pageNumber}` : `Page ${page.pageNumber}`}
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 self-start sm:self-auto">
                   <button
                     type="button"
                     className="rounded-full p-2 text-slate-400 transition hover:bg-white hover:text-slate-600 disabled:opacity-40"
@@ -929,7 +929,7 @@ function MergeTool({ initialFiles = [] }: { initialFiles?: File[] }) {
                   <div
                     key={index + 1}
                     data-preview-page={index + 1}
-                    className="flex items-center justify-center px-6 py-6"
+                    className="flex items-center justify-center px-4 py-4 sm:px-6 sm:py-6"
                     style={previewItemHeight ? { height: previewItemHeight } : undefined}
                   >
                     <div className="h-full w-full">
@@ -1145,8 +1145,8 @@ function SignTool({ initialFile }: { initialFile?: File | null }) {
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1.35fr_0.65fr] landscape-stack">
-      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-soft-md">
-        <div className="flex items-center justify-between">
+      <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-soft-md sm:p-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-semibold text-slate-900">{copy.sign.uploadTitle}</p>
             <p className="text-xs text-slate-500">{copy.sign.uploadHint}</p>
@@ -1248,7 +1248,7 @@ function SignTool({ initialFile }: { initialFile?: File | null }) {
               }
             />
           ) : (
-            <div className="flex h-[420px] flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-slate-200 text-center text-sm text-slate-500">
+            <div className="flex h-[280px] flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-slate-200 text-center text-sm text-slate-500 sm:h-[420px]">
               <FileUp className="h-8 w-8 text-slate-400" />
               {copy.sign.emptyPreview}
             </div>
@@ -1257,7 +1257,7 @@ function SignTool({ initialFile }: { initialFile?: File | null }) {
       </div>
 
       <div className="space-y-6 lg:sticky lg:top-24 lg:self-start landscape-unset">
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-soft-md">
+        <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-soft-md sm:p-6">
           <p className="text-sm font-semibold text-slate-900">{copy.sign.stepsTitle}</p>
           <p className="mt-2 text-xs text-slate-500">{copy.sign.stepsHint}</p>
           <div className="mt-4 space-y-3 text-xs text-slate-600">
@@ -1282,7 +1282,7 @@ function SignTool({ initialFile }: { initialFile?: File | null }) {
           </div>
         </div>
 
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-soft-md">
+        <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-soft-md sm:p-6">
           <p className="text-sm font-semibold text-slate-900">{copy.sign.createTitle}</p>
           <p className="mt-2 text-xs text-slate-500">{copy.sign.createHint}</p>
           <div className="mt-4">
@@ -1296,7 +1296,7 @@ function SignTool({ initialFile }: { initialFile?: File | null }) {
           ) : null}
         </div>
 
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-soft-md">
+        <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-soft-md sm:p-6">
           <p className="text-sm font-semibold text-slate-900">{copy.sign.settingsTitle}</p>
           <div className="mt-4 space-y-4 text-sm text-slate-600">
             <div>
@@ -1387,8 +1387,8 @@ export default function EditorPage() {
       <div className="pointer-events-none absolute bottom-[-20%] right-[-10%] h-[360px] w-[360px] rounded-full bg-sky-200/40 blur-3xl" />
 
       <header className="relative z-10 border-b border-slate-200 bg-white/80">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-3">
+        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <div className="flex w-full items-center justify-between gap-3 sm:w-auto sm:justify-start">
             <Button asChild variant="ghost" size="sm">
               <Link href="/">
                 <ArrowLeft className="h-4 w-4" />
@@ -1396,12 +1396,13 @@ export default function EditorPage() {
               </Link>
             </Button>
           </div>
-          <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+          <div className="flex w-full items-center justify-center gap-2 text-sm font-semibold text-slate-900 sm:w-auto">
             <Layers className="h-4 w-4 text-brand" />
             {copy.header.title}
+            <LocaleSwitcher className="ml-2 sm:hidden" />
           </div>
-          <div className="flex items-center gap-3">
-            <LocaleSwitcher className="shrink-0" />
+          <div className="flex w-full items-center justify-end gap-3 sm:w-auto">
+            <LocaleSwitcher className="hidden shrink-0 sm:flex" />
             <div className="hidden items-center gap-2 text-xs text-slate-500 md:flex">
               {copy.header.subtitle}
             </div>
@@ -1409,7 +1410,7 @@ export default function EditorPage() {
         </div>
       </header>
 
-      <main className="relative z-10 mx-auto max-w-6xl px-6 pb-20 pt-10">
+      <main className="relative z-10 mx-auto max-w-6xl px-4 pb-20 pt-10 sm:px-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -1417,7 +1418,7 @@ export default function EditorPage() {
           className="flex flex-col gap-3"
         >
           <p className="text-sm font-semibold uppercase tracking-wide text-brand">{copy.hero.eyebrow}</p>
-          <h1 className="text-3xl font-bold text-slate-900 md:text-4xl">
+          <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl md:text-4xl">
             {copy.hero.title}
           </h1>
           <p className="text-base text-slate-600">{copy.hero.description}</p>

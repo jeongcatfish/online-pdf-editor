@@ -7,7 +7,7 @@ export const siteMeta = {
   },
   en: {
     title: "PDF Now - Online PDF Editor",
-    description: "Convert, edit, and sign PDFs in your browser for free."
+    description: "Edit, merge, and sign PDFs in your browser."
   }
 } as const satisfies Record<Locale, { title: string; description: string }>;
 
@@ -20,12 +20,13 @@ export const homeCopy = {
       faq: "자주 묻는 질문"
     },
     cta: {
-      startFree: "무료로 시작하기"
+      startFree: "시작하기"
     },
     hero: {
       badge: "온라인 PDF 도구",
       title: "온라인에서 간단하게 PDF 작업",
       subtitle: "PDF 병합, 서명, 변환을 브라우저에서 처리하세요.",
+      bookmarkHint: "이 페이지를 북마크하세요",
       chips: ["완전 무료", "설치 없음", "대용량 지원"]
     },
     upload: {
@@ -58,8 +59,7 @@ export const homeCopy = {
       title: "전 기능 100% 무료",
       description:
         "모든 도구를 무료로 제공하며, 대용량/배치 작업도 추가 과금 없이 이용할 수 있습니다.",
-      secondaryCta: "이용 안내",
-      primaryCta: "무료로 시작하기",
+      primaryCta: "시작하기",
       cards: [
         {
           title: "전 기능 무료",
@@ -80,7 +80,7 @@ export const homeCopy = {
     },
     howSection: {
       eyebrow: "작동 방식",
-      title: "세 단계로 끝나는 PDF 처리",
+      title: "세 단계로 끝나는 처리",
       steps: [
         { title: "업로드", description: "PDF 파일을 바로 끌어다 놓으세요." },
         { title: "편집", description: "필요한 도구를 선택해 즉시 편집합니다." },
@@ -89,15 +89,14 @@ export const homeCopy = {
     },
     benefits: {
       eyebrow: "혜택",
-      title: "PDF Now를 선택해야 하는 이유",
+      title: "PDF Now 선택해야 하는 이유",
       description: "필요한 작업을 빠르게 처리하고, 보안과 사용성을 함께 제공합니다.",
       bullets: [
         "브라우저 기반으로 설치 없이 즉시 사용",
         "문서 버전 관리 제공",
         "자주 쓰는 작업을 빠르게 이어주는 템플릿 제공"
       ],
-      primaryCta: "바로 시작",
-      secondaryCta: "데모 보기"
+      primaryCta: "바로 시작"
     },
     workflow: {
       eyebrow: "작업 흐름",
@@ -144,119 +143,118 @@ export const homeCopy = {
       faq: "FAQ"
     },
     cta: {
-      startFree: "Get started free"
+      startFree: "Start"
     },
     hero: {
-      badge: "Online PDF tools",
-      title: "Do PDF work in minutes online",
-      subtitle: "Merge, sign, and convert PDFs right in your browser.",
-      chips: ["100% Free", "No Install", "Large Files OK"]
+      badge: "PDF tools",
+      title: "Edit PDFs online fast",
+      subtitle: "Merge, sign, and convert in your browser.",
+      bookmarkHint: "Bookmark this page",
+      chips: ["Free", "No install", "Large files"]
     },
     upload: {
-      emptyLabel: "Drop a PDF file",
-      hint: "Click or drag & drop to upload",
-      button: "Upload PDF"
+      emptyLabel: "Drop a PDF",
+      hint: "Click or drag to upload",
+      button: "Upload"
     },
     quickCards: [
-      { label: "Merge pages", desc: "Reorder pages easily" },
-      { label: "Add signatures", desc: "Place them anywhere you want" },
-      { label: "Convert & extract", desc: "Convert to Word, extract images" }
+      { label: "Merge pages", desc: "Reorder pages" },
+      { label: "Add signature", desc: "Place anywhere" },
+      { label: "Convert/extract", desc: "Word + images" }
     ],
     toolsSection: {
-      eyebrow: "Key features",
-      title: "An all-in-one toolkit for PDFs",
-      description: "Merge pages and add signatures right in your browser."
+      eyebrow: "Features",
+      title: "All-in-one PDF tools",
+      description: "Merge pages and sign in-browser."
     },
     features: [
       {
         title: "Merge pages",
-        description: "Drag multiple documents to merge in one go."
+        description: "Drag docs to merge."
       },
       {
         title: "Add signatures",
-        description: "Place e-signatures and approve with one click."
+        description: "Add e-signatures fast."
       }
     ],
     usageSection: {
       eyebrow: "Pricing",
-      title: "100% free for every tool",
-      description: "All tools are free, and large or batch jobs stay free too.",
-      secondaryCta: "Usage guide",
-      primaryCta: "Get started free",
+      title: "All tools free",
+      description: "All tools are free, even large or batch jobs.",
+      primaryCta: "Start",
       cards: [
         {
           title: "All tools free",
           price: "$0",
-          desc: "Editing, merging, signing, and more."
+          desc: "Edit, merge, sign, more."
         },
         {
-          title: "No per-task fees",
+          title: "No task fees",
           price: "No extra cost",
-          desc: "Large and batch jobs are still free."
+          desc: "Large and batch jobs free."
         },
         {
-          title: "No sign-up needed",
+          title: "No signup",
           price: "Always free",
-          desc: "Start without billing or subscriptions."
+          desc: "No billing or subs."
         }
       ]
     },
     howSection: {
       eyebrow: "How it works",
-      title: "PDF tasks in three steps",
+      title: "PDF in 3 steps",
       steps: [
-        { title: "Upload", description: "Drop your PDF file right away." },
-        { title: "Edit", description: "Pick the tools you need and edit instantly." },
-        { title: "Finish & download", description: "Save the finished file safely." }
+        { title: "Upload", description: "Drop your PDF." },
+        { title: "Edit", description: "Pick tools and edit." },
+        { title: "Finish & download", description: "Download safely." }
       ]
     },
     benefits: {
       eyebrow: "Benefits",
-      title: "Why choose PDF Now",
-      description: "Get work done fast with security and usability built in.",
+      title: "Why PDF Now",
+      description: "Fast work with built-in security.",
       bullets: [
-        "Use instantly in the browser, no installs",
-        "Version history and collaboration tracking",
-        "Templates that speed up frequent tasks"
+        "Use in-browser, no install",
+        "Version history + collab",
+        "Templates for common tasks"
       ],
-      primaryCta: "Start now",
-      secondaryCta: "View demo"
+      primaryCta: "Start"
     },
     workflow: {
       eyebrow: "Workflow",
-      title: "Organize document work in one place",
+      title: "One place for document work",
       stats: [
-        { label: "Upload wait time", value: "1.2s" },
-        { label: "Avg edit time", value: "3 min" },
-        { label: "Repeat usage", value: "94%" }
+        { label: "Upload wait", value: "1.2s" },
+        { label: "Avg edit", value: "3 min" },
+        { label: "Repeat use", value: "94%" }
       ]
     },
     faq: {
       eyebrow: "FAQ",
-      title: "Frequently asked questions",
-      description: "Get quick answers before you start with PDF Now.",
+      title: "Common questions",
+      description: "Quick answers before you start.",
       items: [
         {
-          question: "Is it really free?",
-          answer: "Yes. No subscriptions, payments, or per-task charges."
+          question: "Really free?",
+          answer: "Yes. No subs, payments, or per-task fees."
         },
         {
-          question: "Are my uploaded files safe?",
-          answer: "We protect files with encrypted transfer and automatic deletion."
+          question: "Are uploads safe?",
+          answer: "Encrypted transfer and auto delete."
         },
         {
-          question: "Can I use it on mobile?",
-          answer: "The same editing experience on mobile and tablet."
+          question: "Works on mobile?",
+          answer: "Same on mobile and tablet."
         },
         {
-          question: "Is team collaboration supported?",
-          answer: "Share links and version history make collaboration easy."
+          question: "Team collaboration?",
+          answer: "Share links + history for teams."
         }
       ]
     },
     footer: {
-      terms: "Terms of Service",
-      privacy: "Privacy Policy"
+      terms: "Terms",
+      privacy: "Privacy"
     }
   }
 } as const satisfies Record<Locale, unknown>;
@@ -346,37 +344,37 @@ export const editorCopy = {
   },
   en: {
     signaturePad: {
-      hint: "Sign with mouse or touch.",
+      hint: "Sign with mouse/touch.",
       clear: "Clear",
       previewAlt: "Signature preview",
-      saved: "Saved signature"
+      saved: "Saved"
     },
     errors: {
-      invalidFile: "Only PDF files can be uploaded.",
-      loadPdf: "Couldn't load the PDF.",
-      loadPdfRetry: "Couldn't load the PDF. Try another file.",
+      invalidFile: "Only PDFs allowed.",
+      loadPdf: "Couldn't load PDF.",
+      loadPdfRetry: "Couldn't load PDF. Try another.",
       noMergePages: "No pages to merge.",
-      mergeFail: "An error occurred while merging. Please try again.",
-      signMissing: "Upload a PDF, create a signature, and choose a placement.",
-      signFail: "An error occurred while applying the signature."
+      mergeFail: "Merge failed. Try again.",
+      signMissing: "Upload a PDF, make a signature, pick a spot.",
+      signFail: "Signature failed. Try again."
     },
     merge: {
-      emptyTotal: "Add PDF files.",
+      emptyTotal: "Add PDFs.",
       pickFiles: "Select files",
-      pickHint: "Edit page order below.",
+      pickHint: "Edit order below.",
       addFiles: "Add files",
       dropTitle: "Drop PDFs to merge",
-      dropHint: "You can drag multiple files at once.",
-      emptyFiles: "No files added.",
+      dropHint: "Drag multiple files.",
+      emptyFiles: "No files yet.",
       pageOrder: "Page order",
-      pageOrderHint: "Drag to reorder pages.",
+      pageOrderHint: "Drag to reorder.",
       loadingPages: "Loading pages...",
-      emptyPages: "No pages yet. Add a PDF.",
-      previewIdle: "Preview merge",
-      previewLoading: "Generating preview...",
-      downloadMerged: "Download merged PDF",
-      previewTitle: "Merged preview",
-      previewHint: "Scroll to review pages.",
+      emptyPages: "No pages. Add a PDF.",
+      previewIdle: "Preview",
+      previewLoading: "Generating...",
+      downloadMerged: "Download merged",
+      previewTitle: "Preview",
+      previewHint: "Scroll to review.",
       close: "Close",
       aria: {
         removeFile: "Remove file",
@@ -387,41 +385,41 @@ export const editorCopy = {
     },
     sign: {
       uploadTitle: "Upload PDF",
-      uploadHint: "Pick a signature position on the preview.",
+      uploadHint: "Pick a spot on the preview.",
       selectPdf: "Choose PDF",
-      emptyPdf: "Please choose a PDF file.",
+      emptyPdf: "Choose a PDF.",
       pageSelect: "Select page",
-      loadingPages: "Loading page info...",
-      previewHint: "Click the preview to place your signature",
-      emptyPreview: "Upload a PDF to see the preview.",
-      stepsTitle: "Signature steps",
-      stepsHint: "Follow the steps below.",
-      steps: ["Upload PDF", "Create signature", "Click placement in preview"],
+      loadingPages: "Loading pages...",
+      previewHint: "Click preview to place signature",
+      emptyPreview: "Upload a PDF to preview.",
+      stepsTitle: "Steps",
+      stepsHint: "Follow the steps.",
+      steps: ["Upload PDF", "Create signature", "Click preview"],
       createTitle: "Create signature",
-      createHint: "Apply it to the PDF right away.",
-      settingsTitle: "Signature settings",
+      createHint: "Apply it right away.",
+      settingsTitle: "Settings",
       sizeLabel: "Size",
-      positionLabel: "Placement",
-      positionHint: "Click the PDF preview to set the signature position.",
-      guidance: "Upload a PDF, create a signature, then click the preview.",
-      applyIdle: "Apply signature",
-      applyLoading: "Applying signature...",
-      undo: "Undo signature",
-      downloadSigned: "Download signed PDF"
+      positionLabel: "Position",
+      positionHint: "Click preview to set position.",
+      guidance: "Upload, sign, then click preview.",
+      applyIdle: "Apply",
+      applyLoading: "Applying...",
+      undo: "Undo",
+      downloadSigned: "Download signed"
     },
     header: {
-      back: "Back home",
+      back: "Back",
       title: "PDF Now Studio",
-      subtitle: "Processed locally with no storage."
+      subtitle: "Local processing, no storage."
     },
     hero: {
-      eyebrow: "PDF Utility",
-      title: "Merge pages and add signatures right away",
-      description: "Files stay in your browser and can be downloaded immediately after editing."
+      eyebrow: "PDF Tools",
+      title: "Merge pages, add signatures",
+      description: "Files stay in-browser and download instantly."
     },
     tools: {
-      merge: { label: "Merge pages", description: "Combine multiple PDFs into one" },
-      sign: { label: "Add signature", description: "Sign directly on the preview" }
+      merge: { label: "Merge pages", description: "Combine PDFs" },
+      sign: { label: "Add signature", description: "Sign on preview" }
     }
   }
 } as const satisfies Record<Locale, unknown>;

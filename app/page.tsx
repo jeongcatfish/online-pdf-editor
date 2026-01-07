@@ -81,13 +81,16 @@ export default function Home() {
       </div>
 
       <header className="sticky top-4 z-40">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6">
-          <div className="flex w-full items-center justify-between rounded-full border border-slate-200/70 bg-white/85 px-4 py-3 shadow-soft-md backdrop-blur">
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand/10 text-brand">
-                <FileText className="h-5 w-5" />
+        <div className="mx-auto flex max-w-6xl px-4 sm:px-6">
+          <div className="grid w-full gap-3 rounded-3xl border border-slate-200/70 bg-white/85 px-4 py-3 shadow-soft-md backdrop-blur md:flex md:items-center md:justify-between md:rounded-full">
+            <div className="flex items-center justify-between gap-3 md:justify-start">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand/10 text-brand">
+                  <FileText className="h-5 w-5" />
+                </div>
+                <span className="text-lg font-bold text-slate-900">PDF Now</span>
               </div>
-              <span className="text-lg font-bold text-slate-900">PDF Now</span>
+              <LocaleSwitcher className="md:hidden" />
             </div>
             <nav className="hidden items-center gap-8 text-sm font-medium text-slate-600 md:flex">
               <a className="transition hover:text-slate-900" href="#how">
@@ -103,9 +106,9 @@ export default function Home() {
                 {copy.nav.faq}
               </a>
             </nav>
-            <div className="flex items-center gap-3">
-              <LocaleSwitcher className="shrink-0" />
-              <Button size="sm" asChild>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <LocaleSwitcher className="hidden shrink-0 md:flex" />
+              <Button size="sm" asChild className="w-full justify-center sm:w-auto sm:min-w-[120px]">
                 <Link href="/editor">
                   {copy.cta.startFree}
                   <ArrowRight className="h-4 w-4" />
@@ -117,21 +120,29 @@ export default function Home() {
       </header>
 
       <main>
-        <section className="mx-auto flex max-w-5xl flex-col items-center gap-10 px-6 pb-20 pt-10 md:pt-12 text-center">
+        <section className="mx-auto flex max-w-5xl flex-col items-center gap-8 px-4 pb-20 pt-8 text-center sm:gap-10 sm:px-6 sm:pt-10 md:pt-12">
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="flex w-full max-w-3xl flex-col items-center gap-6"
+            className={cn(
+              "flex w-full flex-col items-center gap-6",
+              locale === "en" ? "max-w-5xl" : "max-w-3xl"
+            )}
           >
             <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/90 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-brand shadow-soft-md">
               <Sparkles className="h-4 w-4" />
               {copy.hero.badge}
             </div>
-            <h1 className="text-4xl font-bold leading-tight tracking-tight text-slate-900 md:text-6xl">
+            <h1
+              className={cn(
+                "text-3xl font-bold leading-tight tracking-tight text-slate-900 sm:text-4xl md:text-6xl",
+                locale === "en" && "md:text-5xl lg:text-6xl md:whitespace-nowrap"
+              )}
+            >
               {copy.hero.title}
             </h1>
-            <p className="text-lg text-slate-600">{copy.hero.subtitle}</p>
+            <p className="text-base text-slate-600 sm:text-lg">{copy.hero.subtitle}</p>
             <div className="flex flex-wrap items-center justify-center gap-2 text-xs font-semibold text-slate-600">
               {copy.hero.chips.map((item) => (
                 <span
@@ -142,6 +153,31 @@ export default function Home() {
                 </span>
               ))}
             </div>
+            <p className="mt-3 flex flex-col items-center justify-center gap-2 text-center text-xs text-slate-500 sm:flex-row sm:flex-wrap sm:text-sm">
+              <span data-i18n="bookmark_hint">{copy.hero.bookmarkHint}</span>
+              <span className="hidden text-slate-300 sm:inline">|</span>
+              <span className="inline-flex items-center gap-1 whitespace-nowrap">
+                <span className="text-[10px] font-semibold text-slate-400">Mac</span>
+                <kbd className="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-xs font-semibold text-slate-600 shadow-sm">
+                  Cmd
+                </kbd>
+                <span className="text-slate-400">+</span>
+                <kbd className="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-xs font-semibold text-slate-600 shadow-sm">
+                  D
+                </kbd>
+              </span>
+              <span className="hidden text-slate-300 sm:inline">|</span>
+              <span className="inline-flex items-center gap-1 whitespace-nowrap">
+                <span className="text-[10px] font-semibold text-slate-400">Windows</span>
+                <kbd className="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-xs font-semibold text-slate-600 shadow-sm">
+                  Ctrl
+                </kbd>
+                <span className="text-slate-400">+</span>
+                <kbd className="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-xs font-semibold text-slate-600 shadow-sm">
+                  D
+                </kbd>
+              </span>
+            </p>
           </motion.div>
 
           <motion.div
@@ -153,7 +189,7 @@ export default function Home() {
             <div className="rounded-[28px] bg-gradient-to-r from-sky-200/80 via-blue-200/70 to-cyan-200/80 p-[1px] shadow-soft-lg">
               <div
                 className={cn(
-                  "relative flex min-h-[240px] w-full cursor-pointer flex-col items-center justify-center gap-4 rounded-[26px] border-2 border-dashed bg-white/95 p-8 text-center transition",
+                  "relative flex min-h-[200px] w-full cursor-pointer flex-col items-center justify-center gap-4 rounded-[26px] border-2 border-dashed bg-white/95 p-6 text-center transition sm:min-h-[240px] sm:p-8",
                   isDragging ? "border-brand/70 bg-brand/5" : "border-slate-200"
                 )}
                 onClick={() => inputRef.current?.click()}
@@ -183,31 +219,23 @@ export default function Home() {
                   <p className="text-base font-semibold text-slate-900">{dropZoneLabel}</p>
                   <p className="text-sm text-slate-500">{copy.upload.hint}</p>
                 </div>
-                <Button className="mt-2" size="lg">
+                <Button className="mt-2 w-full sm:w-auto" size="lg">
                   {copy.upload.button}
                 </Button>
               </div>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-3">
-              {copy.quickCards.map((item) => (
-                <div key={item.label} className="rounded-2xl border border-slate-200 bg-white/90 p-4">
-                  <p className="text-sm font-semibold text-slate-900">{item.label}</p>
-                  <p className="mt-2 text-xs text-slate-500">{item.desc}</p>
-                </div>
-              ))}
-            </div>
           </motion.div>
         </section>
 
-        <section id="tools" className="mx-auto max-w-6xl scroll-mt-24 px-6 pb-20">
+        <section id="tools" className="mx-auto max-w-6xl scroll-mt-24 px-4 pb-20 sm:px-6">
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.2 }}
             transition={{ duration: 0.6 }}
           >
-            <div className="flex items-end gap-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:gap-6">
               <div>
                 <p className="text-sm font-semibold uppercase tracking-wide text-brand">
                   {copy.toolsSection.eyebrow}
@@ -240,13 +268,13 @@ export default function Home() {
           </motion.div>
         </section>
 
-        <section id="usage" className="mx-auto max-w-6xl scroll-mt-24 px-6 pb-20">
+        <section id="usage" className="mx-auto max-w-6xl scroll-mt-24 px-4 pb-20 sm:px-6">
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.2 }}
             transition={{ duration: 0.6 }}
-            className="rounded-3xl border border-slate-200 bg-white/90 p-10 shadow-soft-lg"
+            className="rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-soft-lg sm:p-10"
           >
             <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
               <div className="space-y-3">
@@ -257,8 +285,7 @@ export default function Home() {
                 <p className="text-slate-600">{copy.usageSection.description}</p>
               </div>
               <div className="flex flex-wrap gap-3">
-                <Button variant="outline">{copy.usageSection.secondaryCta}</Button>
-                <Button asChild>
+                <Button asChild className="min-w-[120px] justify-center">
                   <Link href="/editor">{copy.usageSection.primaryCta}</Link>
                 </Button>
               </div>
@@ -275,13 +302,13 @@ export default function Home() {
           </motion.div>
         </section>
 
-        <section id="how" className="mx-auto max-w-6xl scroll-mt-24 px-6 pb-20">
+        <section id="how" className="mx-auto max-w-6xl scroll-mt-24 px-4 pb-20 sm:px-6">
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.2 }}
             transition={{ duration: 0.6 }}
-            className="rounded-3xl border border-slate-200 bg-white/90 p-10 shadow-soft-lg"
+            className="rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-soft-lg sm:p-10"
           >
             <div className="flex flex-col gap-2">
               <p className="text-sm font-semibold uppercase tracking-wide text-brand">
@@ -309,7 +336,7 @@ export default function Home() {
           </motion.div>
         </section>
 
-        <section className="mx-auto max-w-6xl px-6 pb-20">
+        <section className="mx-auto max-w-6xl px-4 pb-20 sm:px-6">
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -334,16 +361,15 @@ export default function Home() {
                 ))}
               </div>
               <div className="flex flex-wrap gap-3">
-                <Button asChild>
+                <Button asChild className="min-w-[120px] justify-center">
                   <Link href="/editor">{copy.benefits.primaryCta}</Link>
                 </Button>
-                <Button variant="outline">{copy.benefits.secondaryCta}</Button>
               </div>
             </div>
             <div className="relative">
               <div className="absolute -left-6 -top-6 h-24 w-24 rounded-3xl bg-brand/10" />
               <div className="absolute -bottom-6 -right-6 h-24 w-24 rounded-3xl bg-sky-200/60" />
-              <div className="relative overflow-hidden rounded-3xl border border-slate-200 bg-white p-8 shadow-soft-lg">
+              <div className="relative overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-soft-lg sm:p-8">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
@@ -368,7 +394,7 @@ export default function Home() {
           </motion.div>
         </section>
 
-        <section id="faq" className="mx-auto max-w-6xl scroll-mt-24 px-6 pb-20">
+        <section id="faq" className="mx-auto max-w-6xl scroll-mt-24 px-4 pb-20 sm:px-6">
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -381,7 +407,7 @@ export default function Home() {
               <h2 className="mt-3 text-3xl font-bold text-slate-900">{copy.faq.title}</h2>
               <p className="mt-3 text-slate-600">{copy.faq.description}</p>
             </div>
-            <Accordion type="single" collapsible className="rounded-2xl border border-slate-200 bg-white/90 px-6">
+            <Accordion type="single" collapsible className="rounded-2xl border border-slate-200 bg-white/90 px-4 sm:px-6">
               {copy.faq.items.map((faq) => (
                 <AccordionItem key={faq.question} value={faq.question}>
                   <AccordionTrigger>{faq.question}</AccordionTrigger>
@@ -394,7 +420,7 @@ export default function Home() {
       </main>
 
       <footer className="relative z-10 border-t border-slate-200 bg-white/80">
-        <div className="mx-auto flex max-w-6xl flex-col gap-6 px-6 py-10 md:flex-row md:items-center md:justify-between">
+        <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-10 md:flex-row md:items-center md:justify-between sm:px-6">
           <div>
             <div className="flex items-center gap-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand/10 text-brand">

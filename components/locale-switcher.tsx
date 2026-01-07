@@ -1,9 +1,7 @@
 "use client";
 
-import { useId } from "react";
-
 import { useLocale } from "@/app/locale-provider";
-import { LOCALES, localeLabels, type Locale } from "@/lib/locale";
+import { localeLabels } from "@/lib/locale";
 import { cn } from "@/lib/utils";
 
 type LocaleSwitcherProps = {
@@ -12,26 +10,38 @@ type LocaleSwitcherProps = {
 
 export function LocaleSwitcher({ className }: LocaleSwitcherProps) {
   const { locale, setLocale } = useLocale();
-  const selectId = useId();
-  const label = locale === "ko" ? "언어" : "Language";
+  const isKorean = locale === "ko";
+  const nextLocale = isKorean ? "en" : "ko";
+  const label = locale === "ko" ? "언어 전환" : "Switch language";
 
   return (
     <div className={cn("flex items-center", className)}>
-      <label htmlFor={selectId} className="sr-only">
-        {label}
-      </label>
-      <select
-        id={selectId}
-        value={locale}
-        onChange={(event) => setLocale(event.target.value as Locale)}
-        className="rounded-full border border-slate-200 bg-white/90 px-3 py-2 text-xs font-semibold text-slate-600 shadow-sm backdrop-blur transition hover:border-slate-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/50"
+      <button
+        type="button"
+        aria-label={`${label} (${localeLabels[locale]})`}
+        title={label}
+        onClick={() => setLocale(nextLocale)}
+        className="inline-flex h-8 items-center gap-2 rounded-full border border-slate-200 bg-white/90 px-3 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/50 sm:text-sm"
       >
-        {LOCALES.map((option) => (
-          <option key={option} value={option}>
-            {localeLabels[option]}
-          </option>
-        ))}
-      </select>
+        <span className="sr-only">{label}</span>
+        <span
+          className={cn(
+            "flex h-7 items-center rounded-full px-2 text-[10px] sm:text-xs",
+            isKorean ? "bg-brand/15 text-brand" : "text-slate-500"
+          )}
+        >
+          KO
+        </span>
+        <span className="h-4 w-px bg-slate-200" />
+        <span
+          className={cn(
+            "flex h-7 items-center rounded-full px-2 text-[10px] sm:text-xs",
+            isKorean ? "text-slate-500" : "bg-brand/15 text-brand"
+          )}
+        >
+          EN
+        </span>
+      </button>
     </div>
   );
 }
