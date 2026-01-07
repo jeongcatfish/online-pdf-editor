@@ -290,6 +290,7 @@ export const editorCopy = {
       pageOrderHint: "드래그로 페이지 순서를 변경하세요.",
       loadingPages: "페이지를 불러오는 중입니다...",
       emptyPages: "페이지가 없습니다. PDF를 추가해주세요.",
+      pagePreviewTitle: "페이지 미리보기",
       previewIdle: "병합 후 미리보기",
       previewLoading: "미리보기 생성 중...",
       downloadMerged: "병합 파일 다운로드",
@@ -300,7 +301,8 @@ export const editorCopy = {
         removeFile: "파일 제거",
         moveUp: "위로 이동",
         moveDown: "아래로 이동",
-        removePage: "페이지 제거"
+        removePage: "페이지 제거",
+        previewPage: "페이지 미리보기"
       }
     },
     sign: {
@@ -370,6 +372,7 @@ export const editorCopy = {
       pageOrderHint: "Drag to reorder.",
       loadingPages: "Loading pages...",
       emptyPages: "No pages. Add a PDF.",
+      pagePreviewTitle: "Page preview",
       previewIdle: "Preview",
       previewLoading: "Generating...",
       downloadMerged: "Download merged",
@@ -380,7 +383,8 @@ export const editorCopy = {
         removeFile: "Remove file",
         moveUp: "Move up",
         moveDown: "Move down",
-        removePage: "Remove page"
+        removePage: "Remove page",
+        previewPage: "Preview page"
       }
     },
     sign: {

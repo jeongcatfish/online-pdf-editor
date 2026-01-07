@@ -451,12 +451,20 @@ function MergeTool({ initialFiles = [] }: { initialFiles?: File[] }) {
   const [mergeBytes, setMergeBytes] = useState<Uint8Array | null>(null);
   const [previewPage, setPreviewPage] = useState(1);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [pagePreviewItem, setPagePreviewItem] = useState<PageItem | null>(null);
   const { ref: previewScrollRef, size: previewScrollSize, element: previewScrollElement } =
     useElementSize<HTMLDivElement>();
   const previewScrollRafRef = useRef<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pageDragIndex, setPageDragIndex] = useState<number | null>(null);
   const [pageDragOverIndex, setPageDragOverIndex] = useState<number | null>(null);
+  const dragPointerIdRef = useRef<number | null>(null);
+  const pageDragIndexRef = useRef<number | null>(null);
+  const pageDragOverIndexRef = useRef<number | null>(null);
+  const [dragOffsetY, setDragOffsetY] = useState(0);
+  const dragOffsetRef = useRef(0);
+  const dragStartClientYRef = useRef<number | null>(null);
+  const dragRafRef = useRef<number | null>(null);
   const initializedRef = useRef(false);
 
   useEffect(() => {
@@ -466,6 +474,14 @@ function MergeTool({ initialFiles = [] }: { initialFiles?: File[] }) {
       }
     };
   }, [mergeUrl]);
+
+  useEffect(() => {
+    return () => {
+      if (dragRafRef.current) {
+        cancelAnimationFrame(dragRafRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!pages.length) {
@@ -594,12 +610,103 @@ function MergeTool({ initialFiles = [] }: { initialFiles?: File[] }) {
     setIsPreviewOpen(false);
   }, []);
 
+  const handlePointerDragStart = useCallback(
+    (event: PointerEvent<HTMLElement>, index: number) => {
+      if (event.pointerType === "mouse") {
+        return;
+      }
+
+      event.preventDefault();
+      dragPointerIdRef.current = event.pointerId;
+      pageDragIndexRef.current = index;
+      pageDragOverIndexRef.current = index;
+      setPageDragIndex(index);
+      setPageDragOverIndex(index);
+      dragStartClientYRef.current = event.clientY;
+      dragOffsetRef.current = 0;
+      setDragOffsetY(0);
+      event.currentTarget.setPointerCapture(event.pointerId);
+    },
+    []
+  );
+
+  const handlePointerDragMove = useCallback((event: PointerEvent<HTMLElement>) => {
+    if (dragPointerIdRef.current !== event.pointerId) {
+      return;
+    }
+
+    event.preventDefault();
+    const startY = dragStartClientYRef.current ?? event.clientY;
+    const nextOffset = event.clientY - startY;
+    dragOffsetRef.current = nextOffset;
+    if (dragRafRef.current === null) {
+      dragRafRef.current = requestAnimationFrame(() => {
+        dragRafRef.current = null;
+        setDragOffsetY(dragOffsetRef.current);
+      });
+    }
+    const element = document.elementFromPoint(event.clientX, event.clientY);
+    const row = element?.closest<HTMLElement>("[data-page-row]");
+    if (!row) {
+      if (pageDragOverIndexRef.current !== null) {
+        pageDragOverIndexRef.current = null;
+        setPageDragOverIndex(null);
+      }
+      return;
+    }
+
+    const nextIndex = Number(row.dataset.pageRow);
+    if (Number.isNaN(nextIndex)) {
+      return;
+    }
+
+    if (nextIndex !== pageDragOverIndexRef.current) {
+      pageDragOverIndexRef.current = nextIndex;
+      setPageDragOverIndex(nextIndex);
+    }
+  }, []);
+
+  const handlePointerDragEnd = useCallback(
+    (event: PointerEvent<HTMLElement>) => {
+      if (dragPointerIdRef.current !== event.pointerId) {
+        return;
+      }
+
+      event.preventDefault();
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      }
+
+      const fromIndex = pageDragIndexRef.current;
+      const toIndex = pageDragOverIndexRef.current;
+
+      dragPointerIdRef.current = null;
+      pageDragIndexRef.current = null;
+      pageDragOverIndexRef.current = null;
+      setPageDragIndex(null);
+      setPageDragOverIndex(null);
+      dragStartClientYRef.current = null;
+      dragOffsetRef.current = 0;
+      if (dragRafRef.current) {
+        cancelAnimationFrame(dragRafRef.current);
+        dragRafRef.current = null;
+      }
+      setDragOffsetY(0);
+
+      if (fromIndex !== null && toIndex !== null && fromIndex !== toIndex) {
+        movePage(fromIndex, toIndex);
+      }
+    },
+    [movePage]
+  );
+
   const removeFile = (key: string) => {
     setFiles((prev) => prev.filter((entry) => entry.key !== key));
     setPages((prev) => prev.filter((page) => page.fileKey !== key));
     setMergeUrl(null);
     setMergeBytes(null);
     setIsPreviewOpen(false);
+    setPagePreviewItem((current) => (current?.fileKey === key ? null : current));
   };
 
   const removePage = (id: string) => {
@@ -607,6 +714,7 @@ function MergeTool({ initialFiles = [] }: { initialFiles?: File[] }) {
     setMergeUrl(null);
     setMergeBytes(null);
     setIsPreviewOpen(false);
+    setPagePreviewItem((current) => (current?.id === id ? null : current));
   };
 
   const handleMerge = async () => {
@@ -648,6 +756,41 @@ function MergeTool({ initialFiles = [] }: { initialFiles?: File[] }) {
       setIsMerging(false);
     }
   };
+
+  const pagePreviewSource = useMemo(() => {
+    if (!pagePreviewItem) {
+      return null;
+    }
+
+    return files.find((entry) => entry.key === pagePreviewItem.fileKey) ?? null;
+  }, [files, pagePreviewItem]);
+
+  useEffect(() => {
+    if (isPreviewOpen) {
+      setPagePreviewItem(null);
+    }
+  }, [isPreviewOpen]);
+
+  useEffect(() => {
+    if (!pagePreviewItem) {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setPagePreviewItem(null);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [pagePreviewItem]);
+
+  useEffect(() => {
+    if (pagePreviewItem && !pagePreviewSource) {
+      setPagePreviewItem(null);
+    }
+  }, [pagePreviewItem, pagePreviewSource]);
 
   const totalLabel = useMemo(() => {
     if (!files.length) {
@@ -795,88 +938,124 @@ function MergeTool({ initialFiles = [] }: { initialFiles?: File[] }) {
           {isLoadingPages ? <p className="mt-3 text-xs text-slate-500">{copy.merge.loadingPages}</p> : null}
 
           <div className="mt-4 space-y-3">
-            {pages.map((page, index) => (
-              <div
-                key={page.id}
-                className={cn(
-                  "flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 transition sm:flex-row sm:items-center sm:justify-between",
-                  pageDragOverIndex === index ? "border-brand/60 bg-brand/5" : "border-slate-200"
-                )}
-                draggable
-                onDragStart={() => setPageDragIndex(index)}
-                onDragEnd={() => {
-                  setPageDragIndex(null);
-                  setPageDragOverIndex(null);
-                }}
-                onDragOver={(event) => {
-                  event.preventDefault();
-                }}
-                onDragEnter={() => {
-                  if (pageDragIndex !== null && pageDragIndex !== index) {
-                    setPageDragOverIndex(index);
-                  }
-                }}
-                onDragLeave={() => {
-                  if (pageDragOverIndex === index) {
-                    setPageDragOverIndex(null);
-                  }
-                }}
-                onDrop={() => {
-                  if (pageDragIndex === null) {
-                    return;
-                  }
+            {pages.map((page, index) => {
+              const previewLabel =
+                locale === "ko"
+                  ? `${copy.merge.aria.previewPage} (${page.fileName} ${page.pageNumber}페이지)`
+                  : `${copy.merge.aria.previewPage} (${page.fileName} page ${page.pageNumber})`;
+              const isPointerDragging =
+                dragPointerIdRef.current !== null && pageDragIndex === index;
 
-                  movePage(pageDragIndex, index);
-                  setPageDragIndex(null);
-                  setPageDragOverIndex(null);
-                }}
-              >
-                <div className="flex flex-wrap items-center gap-3 sm:flex-nowrap">
-                  <GripVertical className="h-4 w-4 text-slate-400" />
-                  <div className="flex h-20 w-16 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-white sm:h-24 sm:w-20">
-                    {page.thumbUrl ? (
-                      <img src={page.thumbUrl} alt={`${page.fileName} ${page.pageNumber}`} />
-                    ) : (
-                      <span className="text-[10px] text-slate-400">{page.pageNumber}</span>
-                    )}
+              return (
+                <motion.div
+                  key={page.id}
+                  data-page-row={index}
+                  className={cn(
+                    "flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 transition-colors sm:flex-row sm:items-center sm:justify-between",
+                    pageDragOverIndex === index ? "border-brand/60 bg-brand/5" : "border-slate-200",
+                    isPointerDragging &&
+                      "pointer-events-none relative z-20 bg-white shadow-soft-md ring-2 ring-brand/40 transition-none"
+                  )}
+                  style={isPointerDragging ? { y: dragOffsetY } : undefined}
+                  layout
+                  transition={{ layout: { type: "spring", stiffness: 520, damping: 42, mass: 0.7 } }}
+                  draggable
+                  onDragStart={() => setPageDragIndex(index)}
+                  onDragEnd={() => {
+                    setPageDragIndex(null);
+                    setPageDragOverIndex(null);
+                  }}
+                  onDragOver={(event) => {
+                    event.preventDefault();
+                  }}
+                  onDragEnter={() => {
+                    if (pageDragIndex !== null && pageDragIndex !== index) {
+                      setPageDragOverIndex(index);
+                    }
+                  }}
+                  onDragLeave={() => {
+                    if (pageDragOverIndex === index) {
+                      setPageDragOverIndex(null);
+                    }
+                  }}
+                  onDrop={() => {
+                    if (pageDragIndex === null) {
+                      return;
+                    }
+
+                    movePage(pageDragIndex, index);
+                    setPageDragIndex(null);
+                    setPageDragOverIndex(null);
+                  }}
+                >
+                  <div className="flex flex-wrap items-center gap-3 sm:flex-nowrap">
+                    <button
+                      type="button"
+                      className="touch-none cursor-grab rounded-full p-1 text-slate-400 transition hover:bg-white hover:text-slate-600 active:cursor-grabbing"
+                      aria-label={copy.merge.pageOrderHint}
+                      title={copy.merge.pageOrderHint}
+                      onPointerDown={(event) => handlePointerDragStart(event, index)}
+                      onPointerMove={handlePointerDragMove}
+                      onPointerUp={handlePointerDragEnd}
+                      onPointerCancel={handlePointerDragEnd}
+                    >
+                      <GripVertical className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      className="flex h-20 w-16 items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-white sm:h-24 sm:w-20"
+                      onClick={() => setPagePreviewItem(page)}
+                      aria-label={previewLabel}
+                      title={previewLabel}
+                    >
+                      {page.thumbUrl ? (
+                        <img
+                          src={page.thumbUrl}
+                          alt={`${page.fileName} ${page.pageNumber}`}
+                          draggable={false}
+                        />
+                      ) : (
+                        <span className="text-[10px] text-slate-400">{page.pageNumber}</span>
+                      )}
+                    </button>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-slate-900 break-words">{page.fileName}</p>
+                      <p className="text-xs text-slate-500 break-words">
+                        {locale === "ko" ? `페이지 ${page.pageNumber}` : `Page ${page.pageNumber}`}
+                      </p>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-slate-900 break-words">{page.fileName}</p>
-                    <p className="text-xs text-slate-500 break-words">
-                      {locale === "ko" ? `페이지 ${page.pageNumber}` : `Page ${page.pageNumber}`}
-                    </p>
+                  <div className="flex items-center gap-1 self-start sm:self-auto">
+                    <button
+                      type="button"
+                      className="rounded-full p-2 text-slate-400 transition hover:bg-white hover:text-slate-600 disabled:opacity-40"
+                      onClick={() => movePage(index, Math.max(index - 1, 0))}
+                      aria-label={copy.merge.aria.moveUp}
+                      disabled={index === 0}
+                    >
+                      <ArrowUp className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded-full p-2 text-slate-400 transition hover:bg-white hover:text-slate-600 disabled:opacity-40"
+                      onClick={() => movePage(index, Math.min(index + 1, pages.length - 1))}
+                      aria-label={copy.merge.aria.moveDown}
+                      disabled={index === pages.length - 1}
+                    >
+                      <ArrowDown className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded-full p-2 text-slate-400 transition hover:bg-white hover:text-slate-600"
+                      onClick={() => removePage(page.id)}
+                      aria-label={copy.merge.aria.removePage}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   </div>
-                </div>
-                <div className="flex items-center gap-1 self-start sm:self-auto">
-                  <button
-                    type="button"
-                    className="rounded-full p-2 text-slate-400 transition hover:bg-white hover:text-slate-600 disabled:opacity-40"
-                    onClick={() => movePage(index, Math.max(index - 1, 0))}
-                    aria-label={copy.merge.aria.moveUp}
-                    disabled={index === 0}
-                  >
-                    <ArrowUp className="h-4 w-4" />
-                  </button>
-                  <button
-                    type="button"
-                    className="rounded-full p-2 text-slate-400 transition hover:bg-white hover:text-slate-600 disabled:opacity-40"
-                    onClick={() => movePage(index, Math.min(index + 1, pages.length - 1))}
-                    aria-label={copy.merge.aria.moveDown}
-                    disabled={index === pages.length - 1}
-                  >
-                    <ArrowDown className="h-4 w-4" />
-                  </button>
-                  <button
-                    type="button"
-                    className="rounded-full p-2 text-slate-400 transition hover:bg-white hover:text-slate-600"
-                    onClick={() => removePage(page.id)}
-                    aria-label={copy.merge.aria.removePage}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            ))}
+                </motion.div>
+              );
+            })}
           </div>
 
           {!pages.length && !isLoadingPages ? (
@@ -902,6 +1081,43 @@ function MergeTool({ initialFiles = [] }: { initialFiles?: File[] }) {
           ) : null}
         </div>
       </div>
+
+      {pagePreviewItem && pagePreviewSource ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4"
+          onClick={() => setPagePreviewItem(null)}
+        >
+          <div
+            className="flex h-[85vh] w-[92vw] max-w-5xl flex-col overflow-hidden rounded-3xl bg-white shadow-soft-lg"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-6 py-4">
+              <div>
+                <p className="text-sm font-semibold text-slate-900">{copy.merge.pagePreviewTitle}</p>
+                <p className="text-xs text-slate-500">
+                  {locale === "ko"
+                    ? `${pagePreviewItem.fileName} · ${pagePreviewItem.pageNumber}페이지`
+                    : `${pagePreviewItem.fileName} · Page ${pagePreviewItem.pageNumber}`}
+                </p>
+              </div>
+              <Button type="button" variant="outline" size="sm" onClick={() => setPagePreviewItem(null)}>
+                {copy.merge.close}
+              </Button>
+            </div>
+            <div className="flex-1 bg-slate-50 p-4 sm:p-6">
+              <div className="h-full w-full">
+                <PdfCanvas
+                  data={pagePreviewSource.bytes}
+                  pageNumber={pagePreviewItem.pageNumber}
+                  fit="contain"
+                  className="h-full"
+                  canvasClassName="mx-auto"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {isPreviewOpen && mergeBytes ? (
         <div
