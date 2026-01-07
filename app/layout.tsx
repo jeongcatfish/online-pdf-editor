@@ -13,9 +13,51 @@ function getRequestLocale(): Locale {
   return resolveLocale({ cookieLocale, country });
 }
 
+function getMetadataBase(): URL {
+  const headerList = headers();
+  const host = headerList.get("host");
+  if (host) {
+    const forwardedProto = headerList.get("x-forwarded-proto");
+    const protocol = forwardedProto ?? (host.startsWith("localhost") ? "http" : "https");
+    return new URL(`${protocol}://${host}`);
+  }
+
+  return new URL("https://pdfnow.app");
+}
+
 export function generateMetadata(): Metadata {
   const locale = getRequestLocale();
-  return siteMeta[locale];
+  const meta = siteMeta[locale];
+  const metadataBase = getMetadataBase();
+  const ogLocale = locale === "ko" ? "ko_KR" : "en_US";
+
+  return {
+    metadataBase,
+    title: meta.title,
+    description: meta.description,
+    openGraph: {
+      title: meta.title,
+      description: meta.description,
+      type: "website",
+      locale: ogLocale,
+      url: metadataBase,
+      siteName: "PDF Now",
+      images: [
+        {
+          url: "/opengraph-image",
+          width: 1200,
+          height: 630,
+          alt: meta.title
+        }
+      ]
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: meta.title,
+      description: meta.description,
+      images: ["/opengraph-image"]
+    }
+  };
 }
 
 export default function RootLayout({
