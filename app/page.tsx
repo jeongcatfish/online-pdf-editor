@@ -431,12 +431,12 @@ export default function Home() {
             <p className="mt-3 text-sm text-slate-500">© 2025 PDF Now. All rights reserved.</p>
           </div>
           <div className="flex flex-wrap items-center gap-4 text-sm text-slate-500">
-            <a className="transition hover:text-slate-900" href="#">
+            <Link className="transition hover:text-slate-900" href="/terms">
               {copy.footer.terms}
-            </a>
-            <a className="transition hover:text-slate-900" href="#">
+            </Link>
+            <Link className="transition hover:text-slate-900" href="/privacy">
               {copy.footer.privacy}
-            </a>
+            </Link>
           </div>
         </div>
       </footer>
