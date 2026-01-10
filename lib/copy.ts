@@ -314,7 +314,7 @@ export const editorCopy = {
       saved: "저장된 서명"
     },
     errors: {
-      invalidFile: "지원되는 파일(PDF/이미지/텍스트)만 업로드할 수 있습니다.",
+      invalidFile: "PDF, JPG, PNG만 업로드할 수 있습니다.",
       loadPdf: "PDF를 불러오지 못했습니다.",
       loadPdfRetry: "PDF를 불러오지 못했습니다. 다른 파일로 시도해주세요.",
       noMergePages: "병합할 페이지가 없습니다.",
@@ -324,8 +324,8 @@ export const editorCopy = {
     },
     unsupportedFile: {
       title: "지원되지 않는 형식",
-      description: "PDF/이미지/텍스트로 내보낸 뒤 다시 업로드해주세요.",
-      supportedFormats: "지원 형식: PDF · JPG · PNG · TXT · CSV",
+      description: "PDF/JPG/PNG로 내보낸 뒤 다시 업로드해주세요.",
+      supportedFormats: "지원 형식: PDF · JPG · PNG",
       action: "알겠습니다"
     },
     merge: {
@@ -358,8 +358,8 @@ export const editorCopy = {
     sign: {
       uploadTitle: "PDF 업로드",
       uploadHint: "미리보기에서 서명 위치를 지정하세요.",
-      selectPdf: "PDF 선택",
-      emptyPdf: "PDF 파일을 선택해주세요.",
+      selectPdf: "파일 선택",
+      emptyPdf: "파일을 선택해주세요.",
       pageSelect: "페이지 선택",
       loadingPages: "페이지 정보를 불러오는 중...",
       previewHint: "미리보기에서 서명 위치를 클릭하세요",
@@ -418,7 +418,7 @@ export const editorCopy = {
       saved: "Saved"
     },
     errors: {
-      invalidFile: "Only supported files (PDF/image/text) allowed.",
+      invalidFile: "Only PDF, JPG, PNG files are supported.",
       loadPdf: "Couldn't load PDF.",
       loadPdfRetry: "Couldn't load PDF. Try another.",
       noMergePages: "No pages to merge.",
@@ -428,8 +428,8 @@ export const editorCopy = {
     },
     unsupportedFile: {
       title: "Unsupported format",
-      description: "Export it as PDF/image/text and upload again.",
-      supportedFormats: "Supported: PDF · JPG · PNG · TXT · CSV",
+      description: "Export it as PDF/JPG/PNG and upload again.",
+      supportedFormats: "Supported: PDF · JPG · PNG",
       action: "Got it"
     },
     merge: {
@@ -462,8 +462,8 @@ export const editorCopy = {
     sign: {
       uploadTitle: "Upload PDF",
       uploadHint: "Pick a spot on the preview.",
-      selectPdf: "Choose PDF",
-      emptyPdf: "Choose a PDF.",
+      selectPdf: "Choose file",
+      emptyPdf: "Choose a file.",
       pageSelect: "Select page",
       loadingPages: "Loading pages...",
       previewHint: "Click preview to place signature",

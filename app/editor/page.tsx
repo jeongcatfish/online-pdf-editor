@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MouseEvent, PointerEvent, UIEvent } from "react";
 import { motion } from "framer-motion";
-import { PDFDocument, StandardFonts, type PDFFont } from "pdf-lib";
+import { PDFDocument } from "pdf-lib";
 import { getDocument } from "pdfjs-dist";
 import {
   AlignCenter,
@@ -150,12 +150,8 @@ function isPdfFile(file: File) {
   return file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
 }
 
-const TEXT_PAGE_SIZE = { width: 595.28, height: 841.89 };
-const TEXT_PAGE_MARGIN = 40;
-const TEXT_FONT_SIZE = 12;
-const TEXT_LINE_HEIGHT_PDF = 16;
-const IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".webp", ".bmp", ".gif"];
-const TEXT_EXTENSIONS = [".txt", ".md", ".csv", ".json", ".log"];
+const IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg"];
+const IMAGE_MIME_TYPES = ["image/png", "image/jpeg", "image/jpg"];
 
 class UnsupportedFileError extends Error {
   constructor(public file: File) {
@@ -169,11 +165,7 @@ function hasExtension(file: File, extensions: string[]) {
 }
 
 function isImageFile(file: File) {
-  return file.type.startsWith("image/") || hasExtension(file, IMAGE_EXTENSIONS);
-}
-
-function isTextFile(file: File) {
-  return file.type.startsWith("text/") || hasExtension(file, TEXT_EXTENSIONS);
+  return IMAGE_MIME_TYPES.includes(file.type) || hasExtension(file, IMAGE_EXTENSIONS);
 }
 
 async function convertFileToPdf(file: File) {
@@ -183,10 +175,6 @@ async function convertFileToPdf(file: File) {
 
   if (isImageFile(file)) {
     return convertImageFileToPdf(file);
-  }
-
-  if (isTextFile(file)) {
-    return convertTextFileToPdf(file);
   }
 
   throw new UnsupportedFileError(file);
@@ -240,65 +228,6 @@ async function loadImageElement(file: File) {
     };
     image.src = url;
   });
-}
-
-async function convertTextFileToPdf(file: File) {
-  const content = await file.text();
-  const pdfDoc = await PDFDocument.create();
-  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-  const pageSize = TEXT_PAGE_SIZE;
-  let page = pdfDoc.addPage([pageSize.width, pageSize.height]);
-  let cursorY = pageSize.height - TEXT_PAGE_MARGIN;
-  const maxWidth = pageSize.width - TEXT_PAGE_MARGIN * 2;
-
-  const lines = content.split(/\r\n|\r|\n/);
-  for (const rawLine of lines) {
-    const segments = wrapTextLine(rawLine, font, TEXT_FONT_SIZE, maxWidth);
-    for (const segment of segments) {
-      if (cursorY - TEXT_LINE_HEIGHT_PDF < TEXT_PAGE_MARGIN) {
-        page = pdfDoc.addPage([pageSize.width, pageSize.height]);
-        cursorY = pageSize.height - TEXT_PAGE_MARGIN;
-      }
-      if (segment.trim()) {
-        page.drawText(segment, {
-          x: TEXT_PAGE_MARGIN,
-          y: cursorY,
-          size: TEXT_FONT_SIZE,
-          font,
-          lineHeight: TEXT_LINE_HEIGHT_PDF
-        });
-      }
-      cursorY -= TEXT_LINE_HEIGHT_PDF;
-    }
-  }
-
-  return pdfDoc.save();
-}
-
-function wrapTextLine(line: string, font: PDFFont, fontSize: number, maxWidth: number) {
-  if (!line.trim()) {
-    return [""];
-  }
-
-  const tokens = line.split(" ");
-  const segments: string[] = [];
-  let current = "";
-
-  for (const token of tokens) {
-    const candidate = current ? `${current} ${token}` : token;
-    if (font.widthOfTextAtSize(candidate, fontSize) > maxWidth && current) {
-      segments.push(current);
-      current = token;
-    } else {
-      current = candidate;
-    }
-  }
-
-  if (current) {
-    segments.push(current);
-  }
-
-  return segments;
 }
 
 function createFileKey(file: File) {
@@ -1138,6 +1067,7 @@ function MergeTool({ initialFiles = [] }: { initialFiles?: File[] }) {
           <input
             ref={inputRef}
             type="file"
+            accept=".pdf,.jpg,.jpeg,.png"
             multiple
             className="hidden"
             onChange={(event) => {
@@ -2127,6 +2057,7 @@ function SignTool({ initialFile }: { initialFile?: File | null }) {
           <input
             ref={inputRef}
             type="file"
+            accept=".pdf,.jpg,.jpeg,.png"
             className="hidden"
             onChange={(event) => {
               handlePdfSelect(event.target.files?.[0] ?? null);
