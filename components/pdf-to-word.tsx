@@ -191,7 +191,7 @@ export function PdfToWordConverter({ copy }: { copy: PdfToWordCopy }) {
       const pages = await extractPdfText(selectedFile);
       setStatus("packing");
       const buffer = await buildDocxFromPages(pages, copy);
-      const blob = new Blob([buffer], { type: PDF_MIME_TYPE });
+      const blob = new Blob([new Uint8Array(buffer)], { type: PDF_MIME_TYPE });
       const url = URL.createObjectURL(blob);
       setDownloadUrl(url);
       setStatus("success");

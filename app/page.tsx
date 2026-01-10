@@ -259,7 +259,7 @@ export default function Home() {
                     </div>
                     <h3 className="mt-4 text-base font-semibold text-slate-900">{feature.title}</h3>
                     <p className="mt-2 text-sm text-slate-600">{feature.description}</p>
-                    {feature.ctaLabel && feature.ctaHref && (
+                    {"ctaLabel" in feature && "ctaHref" in feature && (
                       <div className="mt-5">
                         <Button variant="outline" size="sm" asChild>
                           <Link href={feature.ctaHref}>{feature.ctaLabel}</Link>
