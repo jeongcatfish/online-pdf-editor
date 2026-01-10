@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MouseEvent, PointerEvent, UIEvent } from "react";
 import { motion } from "framer-motion";
-import { PDFDocument } from "pdf-lib";
+import { PDFDocument, StandardFonts, type PDFFont } from "pdf-lib";
 import { GlobalWorkerOptions, getDocument } from "pdfjs-dist";
 import {
   AlignCenter,
@@ -32,6 +32,7 @@ import { cn } from "@/lib/utils";
 import { usePdfFiles } from "@/app/providers";
 import { useLocale } from "@/app/locale-provider";
 import { editorCopy } from "@/lib/copy";
+import type { Locale } from "@/lib/locale";
 
 GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
 // Needed for proper rendering of CJK and other non-standard fonts in PDF.js.
@@ -155,6 +156,157 @@ function clamp(value: number, min: number, max: number) {
 
 function isPdfFile(file: File) {
   return file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+}
+
+const TEXT_PAGE_SIZE = { width: 595.28, height: 841.89 };
+const TEXT_PAGE_MARGIN = 40;
+const TEXT_FONT_SIZE = 12;
+const TEXT_LINE_HEIGHT_PDF = 16;
+const IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".webp", ".bmp", ".gif"];
+const TEXT_EXTENSIONS = [".txt", ".md", ".csv", ".json", ".log"];
+
+class UnsupportedFileError extends Error {
+  constructor(public file: File) {
+    super("Unsupported file");
+  }
+}
+
+function hasExtension(file: File, extensions: string[]) {
+  const lowerName = file.name.toLowerCase();
+  return extensions.some((ext) => lowerName.endsWith(ext));
+}
+
+function isImageFile(file: File) {
+  return file.type.startsWith("image/") || hasExtension(file, IMAGE_EXTENSIONS);
+}
+
+function isTextFile(file: File) {
+  return file.type.startsWith("text/") || hasExtension(file, TEXT_EXTENSIONS);
+}
+
+async function convertFileToPdf(file: File) {
+  if (isPdfFile(file)) {
+    return new Uint8Array(await file.arrayBuffer());
+  }
+
+  if (isImageFile(file)) {
+    return convertImageFileToPdf(file);
+  }
+
+  if (isTextFile(file)) {
+    return convertTextFileToPdf(file);
+  }
+
+  throw new UnsupportedFileError(file);
+}
+
+async function convertImageFileToPdf(file: File) {
+  const image = await loadImageElement(file);
+  const canvas = document.createElement("canvas");
+  canvas.width = image.naturalWidth || image.width || 1;
+  canvas.height = image.naturalHeight || image.height || 1;
+  const context = canvas.getContext("2d");
+  if (!context) {
+    throw new Error("Canvas not available");
+  }
+  context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+  const blob = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((result) => {
+      if (result) {
+        resolve(result);
+      } else {
+        reject(new Error("Image conversion failed"));
+      }
+    }, "image/png");
+  });
+
+  const pngBytes = new Uint8Array(await blob.arrayBuffer());
+  const pdfDoc = await PDFDocument.create();
+  const pngImage = await pdfDoc.embedPng(pngBytes);
+  const page = pdfDoc.addPage([pngImage.width, pngImage.height]);
+  page.drawImage(pngImage, {
+    x: 0,
+    y: 0,
+    width: pngImage.width,
+    height: pngImage.height
+  });
+  return pdfDoc.save();
+}
+
+async function loadImageElement(file: File) {
+  const url = URL.createObjectURL(file);
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve(image);
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Unable to load image"));
+    };
+    image.src = url;
+  });
+}
+
+async function convertTextFileToPdf(file: File) {
+  const content = await file.text();
+  const pdfDoc = await PDFDocument.create();
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const pageSize = TEXT_PAGE_SIZE;
+  let page = pdfDoc.addPage([pageSize.width, pageSize.height]);
+  let cursorY = pageSize.height - TEXT_PAGE_MARGIN;
+  const maxWidth = pageSize.width - TEXT_PAGE_MARGIN * 2;
+
+  const lines = content.split(/\r\n|\r|\n/);
+  for (const rawLine of lines) {
+    const segments = wrapTextLine(rawLine, font, TEXT_FONT_SIZE, maxWidth);
+    for (const segment of segments) {
+      if (cursorY - TEXT_LINE_HEIGHT_PDF < TEXT_PAGE_MARGIN) {
+        page = pdfDoc.addPage([pageSize.width, pageSize.height]);
+        cursorY = pageSize.height - TEXT_PAGE_MARGIN;
+      }
+      if (segment.trim()) {
+        page.drawText(segment, {
+          x: TEXT_PAGE_MARGIN,
+          y: cursorY,
+          size: TEXT_FONT_SIZE,
+          font,
+          lineHeight: TEXT_LINE_HEIGHT_PDF
+        });
+      }
+      cursorY -= TEXT_LINE_HEIGHT_PDF;
+    }
+  }
+
+  return pdfDoc.save();
+}
+
+function wrapTextLine(line: string, font: PDFFont, fontSize: number, maxWidth: number) {
+  if (!line.trim()) {
+    return [""];
+  }
+
+  const tokens = line.split(" ");
+  const segments: string[] = [];
+  let current = "";
+
+  for (const token of tokens) {
+    const candidate = current ? `${current} ${token}` : token;
+    if (font.widthOfTextAtSize(candidate, fontSize) > maxWidth && current) {
+      segments.push(current);
+      current = token;
+    } else {
+      current = candidate;
+    }
+  }
+
+  if (current) {
+    segments.push(current);
+  }
+
+  return segments;
 }
 
 function createFileKey(file: File) {
@@ -574,6 +726,7 @@ function MergeTool({ initialFiles = [] }: { initialFiles?: File[] }) {
     useElementSize<HTMLDivElement>();
   const previewScrollRafRef = useRef<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [unsupportedFile, setUnsupportedFile] = useState<File | null>(null);
   const [pageDragIndex, setPageDragIndex] = useState<number | null>(null);
   const [pageDragOverIndex, setPageDragOverIndex] = useState<number | null>(null);
   const dragPointerIdRef = useRef<number | null>(null);
@@ -646,9 +799,7 @@ function MergeTool({ initialFiles = [] }: { initialFiles?: File[] }) {
   }, [isPreviewOpen]);
 
   const addFileArray = useCallback(async (incomingFiles: File[]) => {
-    const validFiles = incomingFiles.filter(isPdfFile);
-    if (!validFiles.length) {
-      setError(copy.errors.invalidFile);
+    if (!incomingFiles.length) {
       return;
     }
 
@@ -657,10 +808,21 @@ function MergeTool({ initialFiles = [] }: { initialFiles?: File[] }) {
     setMergeUrl(null);
     setMergeBytes(null);
     setIsPreviewOpen(false);
+    setUnsupportedFile(null);
 
-    for (const file of validFiles) {
+    for (const file of incomingFiles) {
+      let bytes: Uint8Array;
       try {
-        const bytes = new Uint8Array(await file.arrayBuffer());
+        bytes = await convertFileToPdf(file);
+      } catch (err) {
+        if (err instanceof UnsupportedFileError) {
+          setUnsupportedFile(err.file);
+        }
+        setError(copy.errors.invalidFile);
+        continue;
+      }
+
+      try {
         const previewBytes = bytes.slice();
         const pdf = await getDocument({ data: previewBytes, ...PDFJS_OPTIONS }).promise;
         const fileKey = createFileKey(file);
@@ -690,6 +852,11 @@ function MergeTool({ initialFiles = [] }: { initialFiles?: File[] }) {
 
         await pdf.destroy();
       } catch (err) {
+        if (err instanceof UnsupportedFileError) {
+          setUnsupportedFile(err.file);
+          setError(copy.errors.invalidFile);
+          continue;
+        }
         setError(copy.errors.loadPdfRetry);
       }
     }
@@ -979,7 +1146,6 @@ function MergeTool({ initialFiles = [] }: { initialFiles?: File[] }) {
           <input
             ref={inputRef}
             type="file"
-            accept="application/pdf"
             multiple
             className="hidden"
             onChange={(event) => {
@@ -1289,6 +1455,14 @@ function MergeTool({ initialFiles = [] }: { initialFiles?: File[] }) {
           </div>
         </div>
       ) : null}
+
+      {unsupportedFile ? (
+        <UnsupportedFileModal
+          file={unsupportedFile}
+          copy={copy.unsupportedFile}
+          onClose={() => setUnsupportedFile(null)}
+        />
+      ) : null}
     </div>
   );
 }
@@ -1313,6 +1487,7 @@ function SignTool({ initialFile }: { initialFile?: File | null }) {
   const [history, setHistory] = useState<Uint8Array[]>([]);
   const [outputUrl, setOutputUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [unsupportedFile, setUnsupportedFile] = useState<File | null>(null);
   const [textByPage, setTextByPage] = useState<Record<number, TextOverlay[]>>({});
   const [activeOverlayTool, setActiveOverlayTool] = useState<OverlayTool>("signature");
   const [selectedText, setSelectedText] = useState<{ id: string; page: number } | null>(null);
@@ -1495,14 +1670,21 @@ function SignTool({ initialFile }: { initialFile?: File | null }) {
       return;
     }
 
-    if (!isPdfFile(file)) {
+    setUnsupportedFile(null);
+    setIsLoadingPages(true);
+
+    let bytes: Uint8Array;
+    try {
+      bytes = await convertFileToPdf(file);
+    } catch (err) {
+      if (err instanceof UnsupportedFileError) {
+        setUnsupportedFile(err.file);
+      }
       setError(copy.errors.invalidFile);
+      setIsLoadingPages(false);
       return;
     }
 
-    setIsLoadingPages(true);
-
-    const bytes = new Uint8Array(await file.arrayBuffer());
     setPdfBytes(bytes);
     setPdfName(file.name);
     setOutputUrl(null);
@@ -1953,7 +2135,6 @@ function SignTool({ initialFile }: { initialFile?: File | null }) {
           <input
             ref={inputRef}
             type="file"
-            accept="application/pdf"
             className="hidden"
             onChange={(event) => {
               handlePdfSelect(event.target.files?.[0] ?? null);
@@ -2392,6 +2573,53 @@ function SignTool({ initialFile }: { initialFile?: File | null }) {
               <Download className="h-4 w-4" />
             </Button>
           </div>
+        </div>
+      </div>
+
+      {unsupportedFile ? (
+        <UnsupportedFileModal
+          file={unsupportedFile}
+          copy={copy.unsupportedFile}
+          onClose={() => setUnsupportedFile(null)}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+type UnsupportedFileCopy = (typeof editorCopy)[Locale]["unsupportedFile"];
+
+function UnsupportedFileModal({
+  file,
+  copy,
+  onClose
+}: {
+  file: File;
+  copy: UnsupportedFileCopy;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/60 px-4"
+      role="dialog"
+      aria-labelledby="unsupported-file-title"
+      aria-describedby="unsupported-file-description"
+    >
+      <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-soft-lg">
+        <p id="unsupported-file-title" className="text-sm font-semibold text-slate-900">
+          {copy.title}
+        </p>
+        <p className="mt-2 text-lg font-semibold text-slate-900">{file.name}</p>
+        <p id="unsupported-file-description" className="mt-3 text-sm text-slate-600">
+          {copy.description}
+        </p>
+        <p className="mt-2 text-[11px] uppercase tracking-wide text-slate-400">
+          {copy.supportedFormats}
+        </p>
+        <div className="mt-6 flex justify-end">
+          <Button size="sm" onClick={onClose}>
+            {copy.action}
+          </Button>
         </div>
       </div>
     </div>

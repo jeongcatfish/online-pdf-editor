@@ -41,9 +41,7 @@ export default function Home() {
       return;
     }
 
-    const incoming = Array.from(fileList).filter(
-      (file) => file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")
-    );
+    const incoming = Array.from(fileList);
 
     if (!incoming.length) {
       return;
@@ -207,7 +205,6 @@ export default function Home() {
                 <input
                   ref={inputRef}
                   type="file"
-                  accept="application/pdf"
                   multiple
                   className="hidden"
                   onChange={(event) => handleFiles(event.target.files)}

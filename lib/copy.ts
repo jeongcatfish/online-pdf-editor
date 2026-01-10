@@ -30,9 +30,9 @@ export const homeCopy = {
       chips: ["완전 무료", "설치 없음", "대용량 지원"]
     },
     upload: {
-      emptyLabel: "PDF 파일을 놓으세요",
+      emptyLabel: "파일을 놓으세요",
       hint: "클릭하거나 드래그 앤 드롭으로 업로드",
-      button: "PDF 업로드하기"
+      button: "파일 업로드하기"
     },
     quickCards: [
       { label: "페이지 병합", desc: "페이지 순서 변경 가능" },
@@ -153,9 +153,9 @@ export const homeCopy = {
       chips: ["Free", "No install", "Large files"]
     },
     upload: {
-      emptyLabel: "Drop a PDF",
+      emptyLabel: "Drop files",
       hint: "Click or drag to upload",
-      button: "Upload"
+      button: "Upload files"
     },
     quickCards: [
       { label: "Merge pages", desc: "Reorder pages" },
@@ -270,7 +270,7 @@ export const editorCopy = {
       saved: "저장된 서명"
     },
     errors: {
-      invalidFile: "PDF 파일만 업로드할 수 있습니다.",
+      invalidFile: "지원되는 파일(PDF/이미지/텍스트)만 업로드할 수 있습니다.",
       loadPdf: "PDF를 불러오지 못했습니다.",
       loadPdfRetry: "PDF를 불러오지 못했습니다. 다른 파일로 시도해주세요.",
       noMergePages: "병합할 페이지가 없습니다.",
@@ -278,13 +278,19 @@ export const editorCopy = {
       signMissing: "PDF 업로드 후 서명 또는 텍스트를 추가하세요.",
       signFail: "서명 적용 중 오류가 발생했습니다."
     },
+    unsupportedFile: {
+      title: "지원되지 않는 형식",
+      description: "PDF/이미지/텍스트로 내보낸 뒤 다시 업로드해주세요.",
+      supportedFormats: "지원 형식: PDF · JPG · PNG · TXT · CSV",
+      action: "알겠습니다"
+    },
     merge: {
       emptyTotal: "PDF 파일을 추가하세요.",
       pickFiles: "파일 선택",
       pickHint: "페이지 순서는 아래에서 편집합니다.",
       addFiles: "파일 추가",
-      dropTitle: "PDF를 놓아 병합하세요",
-      dropHint: "여러 파일을 한 번에 드래그할 수 있어요.",
+      dropTitle: "파일을 놓아 병합하세요",
+      dropHint: "여러 문서를 한 번에 드래그할 수 있어요.",
       emptyFiles: "추가된 파일이 없습니다.",
       pageOrder: "페이지 순서",
       pageOrderHint: "드래그로 페이지 순서를 변경하세요.",
@@ -368,7 +374,7 @@ export const editorCopy = {
       saved: "Saved"
     },
     errors: {
-      invalidFile: "Only PDFs allowed.",
+      invalidFile: "Only supported files (PDF/image/text) allowed.",
       loadPdf: "Couldn't load PDF.",
       loadPdfRetry: "Couldn't load PDF. Try another.",
       noMergePages: "No pages to merge.",
@@ -376,13 +382,19 @@ export const editorCopy = {
       signMissing: "Upload a PDF and add a signature or text.",
       signFail: "Signature failed. Try again."
     },
+    unsupportedFile: {
+      title: "Unsupported format",
+      description: "Export it as PDF/image/text and upload again.",
+      supportedFormats: "Supported: PDF · JPG · PNG · TXT · CSV",
+      action: "Got it"
+    },
     merge: {
       emptyTotal: "Add PDFs.",
       pickFiles: "Select files",
       pickHint: "Edit order below.",
       addFiles: "Add files",
-      dropTitle: "Drop PDFs to merge",
-      dropHint: "Drag multiple files.",
+      dropTitle: "Drop files to merge",
+      dropHint: "Drag multiple documents.",
       emptyFiles: "No files yet.",
       pageOrder: "Page order",
       pageOrderHint: "Drag to reorder.",
