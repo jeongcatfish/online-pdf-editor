@@ -7,10 +7,14 @@ import { motion } from "framer-motion";
 import { PDFDocument } from "pdf-lib";
 import { GlobalWorkerOptions, getDocument } from "pdfjs-dist";
 import {
+  AlignCenter,
+  AlignLeft,
+  AlignRight,
   ArrowLeft,
   ArrowDown,
   ArrowUp,
   ArrowRight,
+  Check,
   CheckCircle2,
   Download,
   FilePlus2,
@@ -18,6 +22,7 @@ import {
   GripVertical,
   Layers,
   PenTool,
+  Type,
   Trash2
 } from "lucide-react";
 
@@ -61,6 +66,54 @@ type PageItem = {
   pageIndex: number;
   pageNumber: number;
   thumbUrl: string | null;
+};
+
+type TextAlign = "left" | "center" | "right";
+
+type PdfFontName = "Helvetica" | "TimesRoman" | "Courier";
+
+type TextOverlay = {
+  id: string;
+  page: number;
+  text: string;
+  x: number;
+  y: number;
+  width: number;
+  font: PdfFontName;
+  size: number;
+  color: string;
+  align: TextAlign;
+};
+
+type OverlayTool = "signature" | "text";
+
+const TEXT_LINE_HEIGHT = 1.2;
+const DEFAULT_TEXT_WIDTH_RATIO = 0.35;
+const DEFAULT_TEXT_SIZE = 24;
+const TEXT_BOX_HORIZONTAL_PADDING_RATIO = 0.35;
+const TEXT_BOX_VERTICAL_PADDING_RATIO = 0.2;
+const TEXT_BOX_SIZE_BUFFER_RATIO = 0.08;
+
+type TextDragState = {
+  id: string;
+  page: number;
+  startClientX: number;
+  startClientY: number;
+  originX: number;
+  originY: number;
+  pointerId: number;
+};
+
+const FONT_OPTIONS: { id: PdfFontName; label: string }[] = [
+  { id: "Helvetica", label: "Helvetica" },
+  { id: "TimesRoman", label: "Times Roman" },
+  { id: "Courier", label: "Courier" }
+];
+
+const FONT_FAMILY_BY_ID: Record<PdfFontName, string> = {
+  Helvetica: '"Helvetica Neue", Arial, sans-serif',
+  TimesRoman: '"Times New Roman", Times, serif',
+  Courier: '"Courier New", Courier, monospace'
 };
 
 function useElementSize<T extends HTMLElement>() {
@@ -113,6 +166,56 @@ function createFileKey(file: File) {
       : Math.random().toString(36).slice(2);
 
   return `${file.name}-${file.size}-${file.lastModified}-${randomId}`;
+}
+
+function createOverlayId() {
+  const randomId =
+    typeof globalThis !== "undefined" &&
+    "crypto" in globalThis &&
+    typeof globalThis.crypto?.randomUUID === "function"
+      ? globalThis.crypto.randomUUID()
+      : Math.random().toString(36).slice(2);
+
+  return `overlay-${randomId}`;
+}
+
+function getTextLines(text: string) {
+  return text.split("\n");
+}
+
+function getTextLineHeight(size: number) {
+  return size * TEXT_LINE_HEIGHT;
+}
+
+function getTextHeight(size: number, text: string) {
+  return getTextLines(text).length * getTextLineHeight(size);
+}
+
+function getTextBoxHorizontalPadding(size: number) {
+  return Math.max(2, size * TEXT_BOX_HORIZONTAL_PADDING_RATIO);
+}
+
+function getTextBoxVerticalPadding(size: number) {
+  return Math.max(2, size * TEXT_BOX_VERTICAL_PADDING_RATIO);
+}
+
+function getTextBoxSizeBuffer(size: number) {
+  return Math.max(2, size * TEXT_BOX_SIZE_BUFFER_RATIO);
+}
+
+function getTextBoxHeight(size: number, text: string) {
+  return getTextHeight(size, text) + getTextBoxVerticalPadding(size) * 2 + getTextBoxSizeBuffer(size);
+}
+
+function hexToRgb(color: string) {
+  const normalized = color.replace("#", "");
+  if (normalized.length !== 6) {
+    return { r: 0, g: 0, b: 0 };
+  }
+  const r = Number.parseInt(normalized.slice(0, 2), 16) / 255;
+  const g = Number.parseInt(normalized.slice(2, 4), 16) / 255;
+  const b = Number.parseInt(normalized.slice(4, 6), 16) / 255;
+  return { r, g, b };
 }
 
 async function renderPageThumbnail(pdf: any, pageNumber: number, targetWidth = 140) {
@@ -178,6 +281,21 @@ function calculateSignatureBox({
     canvasTop,
     canvasWidth,
     canvasHeight
+  };
+}
+
+// Overlay coordinates are stored in PDF units with a top-left origin.
+function canvasPointToPdfTopLeft(x: number, y: number, pageInfo: PageInfo) {
+  return {
+    x: (x / pageInfo.renderSize.width) * pageInfo.pageSize.width,
+    y: (y / pageInfo.renderSize.height) * pageInfo.pageSize.height
+  };
+}
+
+function pdfTopLeftToCanvasPoint(x: number, y: number, pageInfo: PageInfo) {
+  return {
+    x: (x / pageInfo.pageSize.width) * pageInfo.renderSize.width,
+    y: (y / pageInfo.pageSize.height) * pageInfo.renderSize.height
   };
 }
 
@@ -1195,6 +1313,22 @@ function SignTool({ initialFile }: { initialFile?: File | null }) {
   const [history, setHistory] = useState<Uint8Array[]>([]);
   const [outputUrl, setOutputUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [textByPage, setTextByPage] = useState<Record<number, TextOverlay[]>>({});
+  const [activeOverlayTool, setActiveOverlayTool] = useState<OverlayTool>("signature");
+  const [selectedText, setSelectedText] = useState<{ id: string; page: number } | null>(null);
+  const [editingText, setEditingText] = useState<{ id: string; page: number } | null>(null);
+  const [hiddenTextGuides, setHiddenTextGuides] = useState<Record<string, boolean>>({});
+  const [textDefaults, setTextDefaults] = useState({
+    font: "Helvetica" as PdfFontName,
+    size: DEFAULT_TEXT_SIZE,
+    color: "#0f172a",
+    align: "left" as TextAlign
+  });
+  const overlayRef = useRef<HTMLDivElement | null>(null);
+  const textMeasureCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const dragStateRef = useRef<TextDragState | null>(null);
+  const [draggingTextId, setDraggingTextId] = useState<string | null>(null);
+  const textEditRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
     return () => {
@@ -1228,6 +1362,26 @@ function SignTool({ initialFile }: { initialFile?: File | null }) {
   }, [activePage]);
 
   useEffect(() => {
+    setSelectedText(null);
+    setEditingText(null);
+    setDraggingTextId(null);
+    dragStateRef.current = null;
+  }, [activePage]);
+
+  useEffect(() => {
+    if (!editingText || editingText.page !== activePage) {
+      return;
+    }
+
+    const raf = requestAnimationFrame(() => {
+      textEditRef.current?.focus();
+      textEditRef.current?.select();
+    });
+
+    return () => cancelAnimationFrame(raf);
+  }, [editingText, activePage]);
+
+  useEffect(() => {
     if (!signatureDataUrl) {
       return;
     }
@@ -1256,8 +1410,85 @@ function SignTool({ initialFile }: { initialFile?: File | null }) {
     });
   }, [currentPlacement, pageInfo, signatureScale, signatureRatio]);
 
-  const canApplySignature = Boolean(pdfBytes && signatureDataUrl && signatureBox && pageInfo);
+  const activeTextItems = textByPage[activePage] ?? [];
+  const selectedTextItem =
+    selectedText && selectedText.page === activePage
+      ? activeTextItems.find((item) => item.id === selectedText.id) ?? null
+      : null;
+  const overlayScale = pageInfo ? pageInfo.renderSize.width / pageInfo.pageSize.width : 1;
+  const canApplySignature = Boolean(signatureDataUrl && signatureBox && pageInfo);
+  const hasAnyTextOverlays = Object.values(textByPage).some((items) => items.length > 0);
+  const canApplyEdits = Boolean(
+    pdfBytes && (canApplySignature || hasAnyTextOverlays)
+  );
   const canUndoSignature = history.length > 0;
+  const canDownload = Boolean(outputUrl || canApplyEdits);
+  const downloadName = pdfName ? `${pdfName.replace(/\.pdf$/i, "")}-edited.pdf` : "edited.pdf";
+  const activeTextStyle = selectedTextItem
+    ? {
+        font: selectedTextItem.font,
+        size: selectedTextItem.size,
+        color: selectedTextItem.color,
+        align: selectedTextItem.align
+      }
+    : textDefaults;
+  const showTextOverlayPanel = Boolean(
+    pageInfo && (activeOverlayTool === "text" || selectedTextItem)
+  );
+
+  const measureTextWidthPx = useCallback(
+    (text: string, font: PdfFontName, fontSizePx: number) => {
+      const fallbackWidth = Math.max(
+        fontSizePx,
+        fontSizePx * 0.6 * Math.max(1, text.length)
+      );
+      if (typeof document === "undefined") {
+        return fallbackWidth;
+      }
+
+      const canvas = textMeasureCanvasRef.current ?? document.createElement("canvas");
+      textMeasureCanvasRef.current = canvas;
+      const context = canvas.getContext("2d");
+      if (!context) {
+        return fallbackWidth;
+      }
+
+      context.font = `${fontSizePx}px ${FONT_FAMILY_BY_ID[font]}`;
+      const lines = getTextLines(text);
+      const maxWidth = Math.max(
+        ...lines.map((line) => context.measureText(line || " ").width),
+        fontSizePx
+      );
+      return maxWidth;
+    },
+    []
+  );
+
+  const getTextWidthPdf = useCallback(
+    (text: string, font: PdfFontName, size: number) => {
+      if (!pageInfo || overlayScale === 0) {
+        return Math.max(size * 2, DEFAULT_TEXT_WIDTH_RATIO * (pageInfo?.pageSize.width ?? 400));
+      }
+
+      const fontSizePx = size * overlayScale;
+      const textWidthPx = measureTextWidthPx(text, font, fontSizePx);
+      const bufferPx = Math.max(2, fontSizePx * TEXT_BOX_SIZE_BUFFER_RATIO);
+      const paddingPdf = getTextBoxHorizontalPadding(size);
+      return (textWidthPx + bufferPx) / overlayScale + paddingPdf * 2;
+    },
+    [measureTextWidthPx, overlayScale, pageInfo]
+  );
+
+  const triggerDownload = useCallback(
+    (url: string) => {
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = downloadName;
+      anchor.rel = "noopener";
+      anchor.click();
+    },
+    [downloadName]
+  );
 
   const handlePdfSelect = async (file: File | null) => {
     if (!file) {
@@ -1276,6 +1507,11 @@ function SignTool({ initialFile }: { initialFile?: File | null }) {
     setPdfName(file.name);
     setOutputUrl(null);
     setPlacementByPage({});
+    setTextByPage({});
+    setSelectedText(null);
+    setEditingText(null);
+    setHiddenTextGuides({});
+    setActiveOverlayTool("signature");
     setActivePage(1);
     setPageCount(0);
     setHistory([]);
@@ -1294,27 +1530,313 @@ function SignTool({ initialFile }: { initialFile?: File | null }) {
     }
   };
 
-  const handleCanvasClick = (event: MouseEvent<HTMLCanvasElement>) => {
+  const handleSignaturePlacement = useCallback(
+    (clientX: number, clientY: number) => {
+      if (!pageInfo || !overlayRef.current) {
+        return;
+      }
+
+      const rect = overlayRef.current.getBoundingClientRect();
+      const x = clientX - rect.left;
+      const y = clientY - rect.top;
+      const pdfX = (x / pageInfo.renderSize.width) * pageInfo.pageSize.width;
+      const pdfY =
+        pageInfo.pageSize.height -
+        (y / pageInfo.renderSize.height) * pageInfo.pageSize.height;
+
+      setPlacementByPage((prev) => ({ ...prev, [activePage]: { pdfX, pdfY } }));
+      setOutputUrl(null);
+      setError(null);
+    },
+    [activePage, pageInfo]
+  );
+
+  const handleOverlayPointerDown = (event: PointerEvent<HTMLDivElement>) => {
     if (!pageInfo) {
       return;
     }
 
-    const rect = event.currentTarget.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-    const pdfX = (x / pageInfo.renderSize.width) * pageInfo.pageSize.width;
-    const pdfY =
-      pageInfo.pageSize.height -
-      (y / pageInfo.renderSize.height) * pageInfo.pageSize.height;
+    if (activeOverlayTool === "text") {
+      event.preventDefault();
+      const rect = event.currentTarget.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+      const { x: pdfX, y: pdfY } = canvasPointToPdfTopLeft(x, y, pageInfo);
+      const textValue = copy.sign.textPlaceholder;
+      const width = getTextWidthPdf(textValue, textDefaults.font, textDefaults.size);
+      const boxHeight = getTextBoxHeight(textDefaults.size, textValue);
+      const newItem: TextOverlay = {
+        id: createOverlayId(),
+        page: activePage,
+        text: textValue,
+        x: clamp(pdfX, 0, Math.max(0, pageInfo.pageSize.width - width)),
+        y: clamp(pdfY, 0, Math.max(0, pageInfo.pageSize.height - boxHeight)),
+        width,
+        font: textDefaults.font,
+        size: textDefaults.size,
+        color: textDefaults.color,
+        align: textDefaults.align
+      };
 
-    setPlacementByPage((prev) => ({ ...prev, [activePage]: { pdfX, pdfY } }));
+      setTextByPage((prev) => ({
+        ...prev,
+        [activePage]: [...(prev[activePage] ?? []), newItem]
+      }));
+      setSelectedText({ id: newItem.id, page: activePage });
+      setEditingText({ id: newItem.id, page: activePage });
+      setOutputUrl(null);
+      setError(null);
+      return;
+    }
+
+    handleSignaturePlacement(event.clientX, event.clientY);
+  };
+
+  const handleOverlayPointerMove = (event: PointerEvent<HTMLDivElement>) => {
+    if (!pageInfo) {
+      return;
+    }
+
+    const dragState = dragStateRef.current;
+    if (dragState && dragState.pointerId === event.pointerId) {
+      event.preventDefault();
+      const scaleX = pageInfo.pageSize.width / pageInfo.renderSize.width;
+      const scaleY = pageInfo.pageSize.height / pageInfo.renderSize.height;
+      const deltaX = (event.clientX - dragState.startClientX) * scaleX;
+      const deltaY = (event.clientY - dragState.startClientY) * scaleY;
+
+      setTextByPage((prev) => {
+        const items = prev[dragState.page] ?? [];
+        const nextItems = items.map((item) => {
+          if (item.id !== dragState.id) {
+            return item;
+          }
+          const height = getTextBoxHeight(item.size, item.text);
+          const maxX = Math.max(0, pageInfo.pageSize.width - item.width);
+          const maxY = Math.max(0, pageInfo.pageSize.height - height);
+          return {
+            ...item,
+            x: clamp(dragState.originX + deltaX, 0, maxX),
+            y: clamp(dragState.originY + deltaY, 0, maxY)
+          };
+        });
+        return { ...prev, [dragState.page]: nextItems };
+      });
+
+      setOutputUrl(null);
+      setError(null);
+      return;
+    }
+
+  };
+
+  const handleOverlayPointerUp = (event: PointerEvent<HTMLDivElement>) => {
+    if (!pageInfo) {
+      return;
+    }
+
+    const dragState = dragStateRef.current;
+    if (dragState && dragState.pointerId === event.pointerId) {
+      dragStateRef.current = null;
+      setDraggingTextId(null);
+      return;
+    }
+
+  };
+
+  const handleTextPointerDown = (event: PointerEvent<HTMLElement>, item: TextOverlay) => {
+    event.stopPropagation();
+    if (editingText?.id === item.id) {
+      return;
+    }
+    event.preventDefault();
+    setHiddenTextGuides((prev) => {
+      if (!prev[item.id]) {
+        return prev;
+      }
+      const next = { ...prev };
+      delete next[item.id];
+      return next;
+    });
+    setActiveOverlayTool("text");
+    setSelectedText({ id: item.id, page: activePage });
+    setEditingText(null);
+    setDraggingTextId(item.id);
+    dragStateRef.current = {
+      id: item.id,
+      page: activePage,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      originX: item.x,
+      originY: item.y,
+      pointerId: event.pointerId
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const handleTextDoubleClick = (event: MouseEvent<HTMLDivElement>, item: TextOverlay) => {
+    event.stopPropagation();
+    setHiddenTextGuides((prev) => {
+      if (!prev[item.id]) {
+        return prev;
+      }
+      const next = { ...prev };
+      delete next[item.id];
+      return next;
+    });
+    setSelectedText({ id: item.id, page: activePage });
+    setEditingText({ id: item.id, page: activePage });
+    setActiveOverlayTool("text");
+  };
+
+  const updateSelectedText = (updates: Partial<TextOverlay>) => {
+    if (selectedText && selectedText.page === activePage) {
+      setTextByPage((prev) => {
+        const items = prev[selectedText.page] ?? [];
+        const nextItems = items.map((item) => {
+          if (item.id !== selectedText.id) {
+            return item;
+          }
+          const nextItem = { ...item, ...updates };
+          const nextWidth = getTextWidthPdf(nextItem.text, nextItem.font, nextItem.size);
+          const nextHeight = getTextBoxHeight(nextItem.size, nextItem.text);
+          if (!pageInfo) {
+            return { ...nextItem, width: nextWidth };
+          }
+          const maxX = Math.max(0, pageInfo.pageSize.width - nextWidth);
+          const maxY = Math.max(0, pageInfo.pageSize.height - nextHeight);
+          return {
+            ...nextItem,
+            width: nextWidth,
+            x: clamp(nextItem.x, 0, maxX),
+            y: clamp(nextItem.y, 0, maxY)
+          };
+        });
+        return { ...prev, [selectedText.page]: nextItems };
+      });
+    }
+
+    setTextDefaults((prev) => ({ ...prev, ...updates }));
     setOutputUrl(null);
     setError(null);
   };
 
+  const handleTextChange = (itemId: string, value: string) => {
+    setTextByPage((prev) => {
+      const items = prev[activePage] ?? [];
+      const nextItems = items.map((item) => {
+        if (item.id !== itemId) {
+          return item;
+        }
+        const nextWidth = getTextWidthPdf(value, item.font, item.size);
+        const nextHeight = getTextBoxHeight(item.size, value);
+        if (!pageInfo) {
+          return { ...item, text: value, width: nextWidth };
+        }
+        const maxX = Math.max(0, pageInfo.pageSize.width - nextWidth);
+        const maxY = Math.max(0, pageInfo.pageSize.height - nextHeight);
+        return {
+          ...item,
+          text: value,
+          width: nextWidth,
+          x: clamp(item.x, 0, maxX),
+          y: clamp(item.y, 0, maxY)
+        };
+      });
+      return { ...prev, [activePage]: nextItems };
+    });
+    setOutputUrl(null);
+    setError(null);
+  };
+
+  const handleDeleteText = (itemId: string) => {
+    setTextByPage((prev) => {
+      const items = prev[activePage] ?? [];
+      const nextItems = items.filter((item) => item.id !== itemId);
+      return { ...prev, [activePage]: nextItems };
+    });
+
+    setHiddenTextGuides((prev) => {
+      if (!prev[itemId]) {
+        return prev;
+      }
+      const next = { ...prev };
+      delete next[itemId];
+      return next;
+    });
+
+    if (selectedText?.id === itemId && selectedText.page === activePage) {
+      setSelectedText(null);
+    }
+    if (editingText?.id === itemId && editingText.page === activePage) {
+      setEditingText(null);
+    }
+    if (draggingTextId === itemId) {
+      setDraggingTextId(null);
+      dragStateRef.current = null;
+    }
+
+    setOutputUrl(null);
+    setError(null);
+  };
+
+  const handleToolToggle = (tool: OverlayTool) => {
+    setActiveOverlayTool((current) => (current === tool ? "signature" : tool));
+    setEditingText(null);
+  };
+
   const handleApplySignature = async () => {
-    if (!pdfBytes || !signatureDataUrl || !signatureBox || !pageInfo) {
+    if (!pdfBytes || !pageInfo) {
       setError(copy.errors.signMissing);
+      return;
+    }
+
+    if (!canApplySignature) {
+      setError(copy.errors.signMissing);
+      return;
+    }
+
+    setIsSigning(true);
+    setError(null);
+    setOutputUrl(null);
+
+    try {
+      const snapshot = pdfBytes.slice();
+      const pdfDoc = await PDFDocument.load(pdfBytes);
+      const page = pdfDoc.getPages()[activePage - 1];
+
+      if (signatureDataUrl && signatureBox) {
+        const signatureImage = await pdfDoc.embedPng(signatureDataUrl);
+        page.drawImage(signatureImage, {
+          x: signatureBox.drawX,
+          y: signatureBox.drawY,
+          width: signatureBox.sigWidth,
+          height: signatureBox.sigHeight
+        });
+      }
+
+      const updatedBytes = await pdfDoc.save();
+      setHistory((prev) => [...prev, snapshot]);
+      setPdfBytes(updatedBytes);
+    } catch (err) {
+      setError(copy.errors.signFail);
+    } finally {
+      setIsSigning(false);
+    }
+  };
+
+  const handleDownloadEdits = async () => {
+    if (outputUrl) {
+      triggerDownload(outputUrl);
+      return;
+    }
+
+    if (!canApplyEdits) {
+      setError(copy.errors.signMissing);
+      return;
+    }
+
+    if (!pdfBytes) {
       return;
     }
 
@@ -1322,25 +1844,77 @@ function SignTool({ initialFile }: { initialFile?: File | null }) {
     setError(null);
 
     try {
-      const snapshot = pdfBytes.slice();
       const pdfDoc = await PDFDocument.load(pdfBytes);
-      const page = pdfDoc.getPages()[activePage - 1];
-      const signatureImage = await pdfDoc.embedPng(signatureDataUrl);
+      const pages = pdfDoc.getPages();
+      const exportScale = 2;
 
-      page.drawImage(signatureImage, {
-        x: signatureBox.drawX,
-        y: signatureBox.drawY,
-        width: signatureBox.sigWidth,
-        height: signatureBox.sigHeight
-      });
+      for (let index = 0; index < pages.length; index += 1) {
+        const page = pages[index];
+        const pageNumber = index + 1;
+        const { height: pageHeight } = page.getSize();
+
+        const textItems = textByPage[pageNumber] ?? [];
+        for (const item of textItems) {
+          const lines = getTextLines(item.text);
+          if (!lines.length || (lines.length === 1 && !lines[0])) {
+            continue;
+          }
+
+          const boxHeight = getTextBoxHeight(item.size, item.text);
+          const paddingXPdf = getTextBoxHorizontalPadding(item.size);
+          const paddingYPdf = getTextBoxVerticalPadding(item.size);
+          const paddingXPx = paddingXPdf * exportScale;
+          const paddingYPx = paddingYPdf * exportScale;
+          const pixelWidth = Math.max(1, Math.ceil(item.width * exportScale));
+          const pixelHeight = Math.max(1, Math.ceil(boxHeight * exportScale));
+          const contentWidthPx = Math.max(0, pixelWidth - paddingXPx * 2);
+
+          if (typeof document === "undefined") {
+            continue;
+          }
+
+          const canvas = document.createElement("canvas");
+          canvas.width = pixelWidth;
+          canvas.height = pixelHeight;
+          const context = canvas.getContext("2d");
+          if (!context) {
+            continue;
+          }
+
+          context.clearRect(0, 0, canvas.width, canvas.height);
+          context.fillStyle = item.color;
+          context.textBaseline = "top";
+          context.font = `${item.size * exportScale}px ${FONT_FAMILY_BY_ID[item.font]}`;
+          const lineHeightPx = getTextLineHeight(item.size) * exportScale;
+
+          lines.forEach((line, lineIndex) => {
+            const lineWidth = context.measureText(line).width;
+            let drawX = paddingXPx;
+            if (item.align === "center") {
+              drawX = paddingXPx + (contentWidthPx - lineWidth) / 2;
+            } else if (item.align === "right") {
+              drawX = paddingXPx + (contentWidthPx - lineWidth);
+            }
+            const maxX = paddingXPx + Math.max(0, contentWidthPx - lineWidth);
+            drawX = clamp(drawX, paddingXPx, maxX);
+            context.fillText(line, drawX, paddingYPx + lineIndex * lineHeightPx);
+          });
+
+          const dataUrl = canvas.toDataURL("image/png");
+          const textImage = await pdfDoc.embedPng(dataUrl);
+          page.drawImage(textImage, {
+            x: item.x,
+            y: pageHeight - (item.y + boxHeight),
+            width: item.width,
+            height: boxHeight
+          });
+        }
+      }
 
       const updatedBytes = await pdfDoc.save();
-      const blob = bytesToPdfBlob(updatedBytes);
-      const url = URL.createObjectURL(blob);
-
-      setHistory((prev) => [...prev, snapshot]);
-      setPdfBytes(updatedBytes);
+      const url = URL.createObjectURL(bytesToPdfBlob(updatedBytes));
       setOutputUrl(url);
+      triggerDownload(url);
     } catch (err) {
       setError(copy.errors.signFail);
     } finally {
@@ -1357,9 +1931,8 @@ function SignTool({ initialFile }: { initialFile?: File | null }) {
       const next = [...prev];
       const previous = next.pop();
       if (previous) {
-        const url = URL.createObjectURL(bytesToPdfBlob(previous));
         setPdfBytes(previous);
-        setOutputUrl(next.length ? url : null);
+        setOutputUrl(null);
         setError(null);
       }
       return next;
@@ -1440,18 +2013,263 @@ function SignTool({ initialFile }: { initialFile?: File | null }) {
 
         {isLoadingPages ? <p className="mt-3 text-xs text-slate-500">{copy.sign.loadingPages}</p> : null}
 
+        <div className="mt-4 flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-500">
+          <Button
+            type="button"
+            variant={activeOverlayTool === "signature" ? "default" : "outline"}
+            size="sm"
+            onClick={() => handleToolToggle("signature")}
+            disabled={!pdfBytes || isLoadingPages}
+          >
+            {copy.sign.signatureToolbar}
+            <PenTool className="h-4 w-4" />
+          </Button>
+          <Button
+            type="button"
+            variant={activeOverlayTool === "text" ? "default" : "outline"}
+            size="sm"
+            onClick={() => handleToolToggle("text")}
+            disabled={!pdfBytes || isLoadingPages}
+          >
+            {copy.sign.textToolbar}
+            <Type className="h-4 w-4" />
+          </Button>
+        </div>
+
+        {showTextOverlayPanel ? (
+          <div
+            className="mt-3 flex w-full flex-nowrap items-center gap-3 overflow-x-auto rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600"
+            title={copy.sign.textSettingsHint}
+          >
+            <span className="shrink-0 text-[11px] font-semibold text-slate-500">
+              {copy.sign.textSettingsTitle}
+            </span>
+            <select
+              className="h-8 shrink-0 rounded-lg border border-slate-200 bg-white px-2 text-xs text-slate-700"
+              value={activeTextStyle.font}
+              onChange={(event) =>
+                updateSelectedText({ font: event.target.value as PdfFontName })
+              }
+            >
+              {FONT_OPTIONS.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <div className="flex shrink-0 items-center gap-2">
+              <span className="text-[11px] font-semibold text-slate-400">
+                {copy.sign.textSizeLabel}
+              </span>
+              <input
+                type="range"
+                min={10}
+                max={64}
+                step={1}
+                value={activeTextStyle.size}
+                onChange={(event) => updateSelectedText({ size: Number(event.target.value) })}
+                className="w-24 accent-brand"
+              />
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <span className="text-[11px] font-semibold text-slate-400">
+                {copy.sign.textColorLabel}
+              </span>
+              <input
+                type="color"
+                value={activeTextStyle.color}
+                onChange={(event) => updateSelectedText({ color: event.target.value })}
+                className="h-8 w-10 rounded-md border border-slate-200 bg-white"
+              />
+            </div>
+            <div className="flex shrink-0 items-center gap-1">
+              <Button
+                type="button"
+                variant={activeTextStyle.align === "left" ? "default" : "outline"}
+                size="sm"
+                className="h-7 px-2"
+                onClick={() => updateSelectedText({ align: "left" })}
+                aria-label={copy.sign.textAlignLeft}
+                title={copy.sign.textAlignLeft}
+              >
+                <AlignLeft className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                type="button"
+                variant={activeTextStyle.align === "center" ? "default" : "outline"}
+                size="sm"
+                className="h-7 px-2"
+                onClick={() => updateSelectedText({ align: "center" })}
+                aria-label={copy.sign.textAlignCenter}
+                title={copy.sign.textAlignCenter}
+              >
+                <AlignCenter className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                type="button"
+                variant={activeTextStyle.align === "right" ? "default" : "outline"}
+                size="sm"
+                className="h-7 px-2"
+                onClick={() => updateSelectedText({ align: "right" })}
+                aria-label={copy.sign.textAlignRight}
+                title={copy.sign.textAlignRight}
+              >
+                <AlignRight className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+            {!selectedTextItem ? (
+              <span className="ml-auto shrink-0 text-[11px] text-slate-500">
+                {copy.sign.textSelectHint}
+              </span>
+            ) : null}
+          </div>
+        ) : null}
+
         <div className="mt-5">
           {pdfBytes ? (
             <PdfCanvas
               data={pdfBytes}
               pageNumber={activePage}
               onPageInfo={(info) => setPageInfo(info)}
-              onCanvasClick={handleCanvasClick}
               overlay={
-                <>
+                <div
+                  ref={overlayRef}
+                  className={cn(
+                    "absolute inset-0",
+                    activeOverlayTool === "text" ? "cursor-text" : "cursor-crosshair"
+                  )}
+                  onPointerDown={handleOverlayPointerDown}
+                  onPointerMove={handleOverlayPointerMove}
+                  onPointerUp={handleOverlayPointerUp}
+                  onPointerCancel={handleOverlayPointerUp}
+                >
+                  {pageInfo
+                    ? activeTextItems.map((item) => {
+                        const { x, y } = pdfTopLeftToCanvasPoint(item.x, item.y, pageInfo);
+                        const isSelected = selectedText?.id === item.id && selectedText.page === activePage;
+                        const isEditing = editingText?.id === item.id && editingText.page === activePage;
+                        const isGuideHidden = Boolean(hiddenTextGuides[item.id]);
+                        const boxHeight = getTextBoxHeight(item.size, item.text);
+                        const paddingX = getTextBoxHorizontalPadding(item.size) * overlayScale;
+                        const paddingY = getTextBoxVerticalPadding(item.size) * overlayScale;
+                        return (
+                          <div
+                            key={item.id}
+                            onPointerDown={(event) => handleTextPointerDown(event, item)}
+                            onDoubleClick={(event) => handleTextDoubleClick(event, item)}
+                            className={cn(
+                              "absolute z-20 box-border rounded-md group",
+                              isGuideHidden
+                                ? "border border-transparent bg-transparent"
+                                : "border border-slate-300/70 bg-white/5",
+                              isEditing ? "cursor-text" : "cursor-move",
+                              !isGuideHidden && isSelected ? "border-brand/70 ring-2 ring-brand/40" : null,
+                              !isGuideHidden ? "hover:border-brand/50" : null,
+                              draggingTextId === item.id ? "opacity-80" : null
+                            )}
+                            style={{
+                              left: x,
+                              top: y,
+                              width: item.width * overlayScale,
+                              height: boxHeight * overlayScale,
+                              padding: `${paddingY}px ${paddingX}px`,
+                              color: item.color,
+                              fontFamily: FONT_FAMILY_BY_ID[item.font],
+                              fontSize: item.size * overlayScale,
+                              lineHeight: `${getTextLineHeight(item.size) * overlayScale}px`,
+                              textAlign: item.align,
+                              whiteSpace: "pre-wrap",
+                              wordBreak: "break-word"
+                            }}
+                          >
+                            {!isGuideHidden ? (
+                              <div
+                                className={cn(
+                                  "absolute left-1/2 top-0 z-30 flex -translate-x-1/2 -translate-y-1/2 items-center gap-1 rounded-full border border-slate-200 bg-white px-1 py-0.5 shadow-sm transition",
+                                  isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                                )}
+                              >
+                                <button
+                                  type="button"
+                                  onPointerDown={(event) => {
+                                    event.stopPropagation();
+                                    handleTextPointerDown(event, item);
+                                  }}
+                                  className="flex h-6 w-6 cursor-grab items-center justify-center rounded-full text-slate-500 transition hover:text-slate-700 active:cursor-grabbing"
+                                  aria-label={copy.sign.textMoveAria}
+                                >
+                                  <GripVertical className="h-3.5 w-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onPointerDown={(event) => event.stopPropagation()}
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    setHiddenTextGuides((prev) => ({
+                                      ...prev,
+                                      [item.id]: true
+                                    }));
+                                    if (selectedText?.id === item.id && selectedText.page === activePage) {
+                                      setSelectedText(null);
+                                    }
+                                    if (editingText?.id === item.id && editingText.page === activePage) {
+                                      setEditingText(null);
+                                    }
+                                  }}
+                                  className="flex h-6 w-6 items-center justify-center rounded-full text-slate-500 transition hover:text-slate-700"
+                                  aria-label={copy.sign.textHideAria}
+                                >
+                                  <Check className="h-3.5 w-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onPointerDown={(event) => event.stopPropagation()}
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    handleDeleteText(item.id);
+                                  }}
+                                  className="flex h-6 w-6 items-center justify-center rounded-full text-slate-500 transition hover:text-slate-700"
+                                  aria-label={copy.sign.textDeleteAria}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            ) : null}
+                            {isEditing ? (
+                              <textarea
+                                ref={textEditRef}
+                                value={item.text}
+                                rows={getTextLines(item.text).length}
+                                onChange={(event) => handleTextChange(item.id, event.target.value)}
+                                onPointerDown={(event) => event.stopPropagation()}
+                                onBlur={() => setEditingText(null)}
+                                onKeyDown={(event) => {
+                                  if (event.key === "Escape") {
+                                    setEditingText(null);
+                                  }
+                                }}
+                                className="h-full w-full resize-none rounded-sm border-0 bg-white/80 p-0 outline-none shadow-none overflow-hidden"
+                                style={{
+                                  color: item.color,
+                                  fontFamily: FONT_FAMILY_BY_ID[item.font],
+                                  fontSize: item.size * overlayScale,
+                                  lineHeight: `${getTextLineHeight(item.size) * overlayScale}px`,
+                                  textAlign: item.align,
+                                  whiteSpace: "pre-wrap",
+                                  wordBreak: "break-word"
+                                }}
+                              />
+                            ) : (
+                              <div className="pointer-events-none">{item.text}</div>
+                            )}
+                          </div>
+                        );
+                      })
+                    : null}
+
                   {signatureBox ? (
                     <div
-                      className="pointer-events-none absolute rounded-xl border-2 border-dashed border-brand"
+                      className="pointer-events-none absolute z-30 rounded-xl border-2 border-dashed border-brand"
                       style={{
                         left: signatureBox.canvasLeft,
                         top: signatureBox.canvasTop,
@@ -1461,13 +2279,13 @@ function SignTool({ initialFile }: { initialFile?: File | null }) {
                     />
                   ) : null}
                   {signatureDataUrl && !currentPlacement ? (
-                    <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                    <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center">
                       <div className="rounded-full border border-slate-200 bg-white/95 px-4 py-2 text-xs font-semibold text-slate-700 shadow-soft-md">
                         {copy.sign.previewHint}
                       </div>
                     </div>
                   ) : null}
-                </>
+                </div>
               }
             />
           ) : (
@@ -1544,7 +2362,7 @@ function SignTool({ initialFile }: { initialFile?: File | null }) {
             </div>
           </div>
 
-          {!canApplySignature && !error ? (
+          {!canApplyEdits && !error ? (
             <p className="mt-4 text-xs text-slate-500">
               {copy.sign.guidance}
             </p>
@@ -1564,17 +2382,15 @@ function SignTool({ initialFile }: { initialFile?: File | null }) {
             >
               {copy.sign.undo}
             </Button>
-            {outputUrl ? (
-              <Button asChild variant="outline">
-                <a
-                  href={outputUrl}
-                  download={pdfName ? `${pdfName.replace(/\.pdf$/i, "")}-signed.pdf` : "signed.pdf"}
-                >
-                  {copy.sign.downloadSigned}
-                  <Download className="h-4 w-4" />
-                </a>
-              </Button>
-            ) : null}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => void handleDownloadEdits()}
+              disabled={!canDownload || isSigning}
+            >
+              {copy.sign.downloadSigned}
+              <Download className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       </div>
