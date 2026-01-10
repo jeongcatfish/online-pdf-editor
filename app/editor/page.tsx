@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MouseEvent, PointerEvent, UIEvent } from "react";
 import { motion } from "framer-motion";
 import { PDFDocument, StandardFonts, type PDFFont } from "pdf-lib";
-import { GlobalWorkerOptions, getDocument } from "pdfjs-dist";
+import { getDocument } from "pdfjs-dist";
 import {
   AlignCenter,
   AlignLeft,
@@ -33,15 +33,7 @@ import { usePdfFiles } from "@/app/providers";
 import { useLocale } from "@/app/locale-provider";
 import { editorCopy } from "@/lib/copy";
 import type { Locale } from "@/lib/locale";
-
-GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
-// Needed for proper rendering of CJK and other non-standard fonts in PDF.js.
-const PDFJS_OPTIONS = {
-  cMapUrl: "/cmaps/",
-  cMapPacked: true,
-  standardFontDataUrl: "/standard_fonts/",
-  useSystemFonts: true
-} as const;
+import { PDFJS_OPTIONS } from "@/lib/pdf-config";
 
 type Size = {
   width: number;

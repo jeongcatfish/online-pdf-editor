@@ -21,8 +21,9 @@ import { useLocale } from "@/app/locale-provider";
 import { cn } from "@/lib/utils";
 import { usePdfFiles } from "@/app/providers";
 import { homeCopy } from "@/lib/copy";
+import { PdfToWordConverter } from "@/components/pdf-to-word";
 
-const featureIcons = [Layers, PenTool];
+const featureIcons = [Layers, PenTool, FileText];
 const stepIcons = [UploadCloud, Sparkles, FileUp];
 
 export default function Home() {
@@ -258,6 +259,13 @@ export default function Home() {
                     </div>
                     <h3 className="mt-4 text-base font-semibold text-slate-900">{feature.title}</h3>
                     <p className="mt-2 text-sm text-slate-600">{feature.description}</p>
+                    {feature.ctaLabel && feature.ctaHref && (
+                      <div className="mt-5">
+                        <Button variant="outline" size="sm" asChild>
+                          <Link href={feature.ctaHref}>{feature.ctaLabel}</Link>
+                        </Button>
+                      </div>
+                    )}
                   </motion.div>
                 );
               })}

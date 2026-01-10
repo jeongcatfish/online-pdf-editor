@@ -34,6 +34,22 @@ export const homeCopy = {
       hint: "클릭하거나 드래그 앤 드롭으로 업로드",
       button: "파일 업로드하기"
     },
+    conversion: {
+      eyebrow: "변환",
+      title: "PDF를 Word로 변환",
+      description: "PDF를 업로드하면 텍스트를 추출해 Word(.docx) 파일로 만들어 드려요.",
+      dropLabelDefault: "변환할 PDF를 놓거나 클릭하세요",
+      dropHint: "업로드된 PDF를 즉시 Word 문서로 만들어줍니다.",
+      button: "Word로 변환",
+      downloadLabel: "Word 다운로드",
+      statusExtracting: "텍스트 추출 중...",
+      statusPacking: "Word 문서 생성 중...",
+      statusSuccess: "변환 준비 완료",
+      statusError: "변환 실패. 다시 시도해주세요.",
+      invalidFile: "PDF 파일만 업로드할 수 있습니다.",
+      pageLabel: "페이지",
+      emptyPageLabel: "텍스트를 찾을 수 없습니다."
+    },
     quickCards: [
       { label: "페이지 병합", desc: "페이지 순서 변경 가능" },
       { label: "서명 추가", desc: "원하는 위치에 적용" },
@@ -52,6 +68,12 @@ export const homeCopy = {
       {
         title: "서명 추가",
         description: "서명을 작성하고 클릭 한 번으로 문서에 추가하세요."
+      },
+      {
+        title: "Word 변환",
+        description: "PDF를 업로드하면 즉시 Word(.docx)로 재구성합니다.",
+        ctaLabel: "Word로 변환",
+        ctaHref: "/convert"
       }
     ],
     usageSection: {
@@ -157,6 +179,22 @@ export const homeCopy = {
       hint: "Click or drag to upload",
       button: "Upload files"
     },
+    conversion: {
+      eyebrow: "Convert",
+      title: "PDF to Word",
+      description: "Upload a PDF and we’ll turn extracted text into a downloadable .docx.",
+      dropLabelDefault: "Drop a PDF or click to select",
+      dropHint: "Uploaded PDFs are immediately packaged into Word.",
+      button: "Convert to Word",
+      downloadLabel: "Download Word",
+      statusExtracting: "Extracting text...",
+      statusPacking: "Creating Word file...",
+      statusSuccess: "Ready to download",
+      statusError: "Conversion failed. Try again.",
+      invalidFile: "Please upload a PDF.",
+      pageLabel: "Page",
+      emptyPageLabel: "No text detected."
+    },
     quickCards: [
       { label: "Merge pages", desc: "Reorder pages" },
       { label: "Add signature", desc: "Place anywhere" },
@@ -175,6 +213,12 @@ export const homeCopy = {
       {
         title: "Add signatures",
         description: "Add e-signatures fast."
+      },
+      {
+        title: "PDF to Word",
+        description: "Upload a PDF and get the extracted text in a Word (.docx) file.",
+        ctaLabel: "Convert to Word",
+        ctaHref: "/convert"
       }
     ],
     usageSection: {
