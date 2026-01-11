@@ -34,6 +34,7 @@ import { useLocale } from "@/app/locale-provider";
 import { editorCopy } from "@/lib/copy";
 import type { Locale } from "@/lib/locale";
 import { PDFJS_OPTIONS } from "@/lib/pdf-config";
+import { isImageFile, isPdfFile } from "@/lib/file-utils";
 
 type Size = {
   width: number;
@@ -146,26 +147,10 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
-function isPdfFile(file: File) {
-  return file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
-}
-
-const IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg"];
-const IMAGE_MIME_TYPES = ["image/png", "image/jpeg", "image/jpg"];
-
 class UnsupportedFileError extends Error {
   constructor(public file: File) {
     super("Unsupported file");
   }
-}
-
-function hasExtension(file: File, extensions: string[]) {
-  const lowerName = file.name.toLowerCase();
-  return extensions.some((ext) => lowerName.endsWith(ext));
-}
-
-function isImageFile(file: File) {
-  return IMAGE_MIME_TYPES.includes(file.type) || hasExtension(file, IMAGE_EXTENSIONS);
 }
 
 async function convertFileToPdf(file: File) {

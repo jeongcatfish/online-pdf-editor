@@ -32,7 +32,8 @@ export const homeCopy = {
     upload: {
       emptyLabel: "파일을 놓으세요",
       hint: "클릭하거나 드래그 앤 드롭으로 업로드",
-      button: "파일 업로드하기"
+      button: "파일 업로드하기",
+      invalidFile: "PDF, JPG, PNG만 업로드할 수 있습니다."
     },
     conversion: {
       eyebrow: "변환",
@@ -177,7 +178,8 @@ export const homeCopy = {
     upload: {
       emptyLabel: "Drop files",
       hint: "Click or drag to upload",
-      button: "Upload files"
+      button: "Upload files",
+      invalidFile: "Only PDF, JPG, PNG files are allowed."
     },
     conversion: {
       eyebrow: "Convert",

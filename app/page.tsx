@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { usePdfFiles } from "@/app/providers";
 import { homeCopy } from "@/lib/copy";
 import { PdfToWordConverter } from "@/components/pdf-to-word";
+import { isSupportedFile, SUPPORTED_INPUT_ACCEPT } from "@/lib/file-utils";
 
 const featureIcons = [Layers, PenTool, FileText];
 const stepIcons = [UploadCloud, Sparkles, FileUp];
@@ -33,6 +34,7 @@ export default function Home() {
   const [fileName, setFileName] = useState<string | null>(null);
   const [fileSize, setFileSize] = useState<string | null>(null);
   const [fileCount, setFileCount] = useState(0);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const { setFiles } = usePdfFiles();
   const { locale } = useLocale();
   const copy = homeCopy[locale];
@@ -48,11 +50,19 @@ export default function Home() {
       return;
     }
 
-    const [first] = incoming;
+    const validFiles = incoming.filter(isSupportedFile);
+
+    if (!validFiles.length) {
+      setUploadError(copy.upload.invalidFile);
+      return;
+    }
+
+    const [first] = validFiles;
     setFileName(first.name);
     setFileSize(`${(first.size / 1024 / 1024).toFixed(2)} MB`);
-    setFileCount(incoming.length);
-    setFiles(incoming);
+    setFileCount(validFiles.length);
+    setFiles(validFiles);
+    setUploadError(null);
     router.push("/editor");
   };
 
@@ -202,20 +212,26 @@ export default function Home() {
                   setIsDragging(false);
                   handleFiles(event.dataTransfer.files);
                 }}
-              >
-                <input
-                  ref={inputRef}
-                  type="file"
-                  multiple
-                  className="hidden"
-                  onChange={(event) => handleFiles(event.target.files)}
-                />
+                >
+                  <input
+                    ref={inputRef}
+                    type="file"
+                    multiple
+                    accept={SUPPORTED_INPUT_ACCEPT}
+                    className="hidden"
+                    onChange={(event) => handleFiles(event.target.files)}
+                  />
                 <div className="flex h-16 w-16 items-center justify-center rounded-full bg-brand/10 text-brand">
                   <UploadCloud className="h-8 w-8" />
                 </div>
                 <div className="space-y-2">
                   <p className="text-base font-semibold text-slate-900">{dropZoneLabel}</p>
                   <p className="text-sm text-slate-500">{copy.upload.hint}</p>
+                  {uploadError && (
+                    <p className="text-xs font-semibold text-red-600" role="alert">
+                      {uploadError}
+                    </p>
+                  )}
                 </div>
                 <Button className="mt-2 w-full sm:w-auto" size="lg">
                   {copy.upload.button}

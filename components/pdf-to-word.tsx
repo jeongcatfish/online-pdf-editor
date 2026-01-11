@@ -7,6 +7,7 @@ import { Download, UploadCloud } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { PDFJS_OPTIONS } from "@/lib/pdf-config";
+import { isPdfFile } from "@/lib/file-utils";
 import type { HomeCopy } from "@/lib/copy";
 
 const PDF_MIME_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
@@ -14,10 +15,6 @@ const PDF_MIME_TYPE = "application/vnd.openxmlformats-officedocument.wordprocess
 type ConversionStatus = "idle" | "extracting" | "packing" | "success" | "error";
 
 type PdfToWordCopy = HomeCopy["conversion"];
-
-function isPdfFile(file: File) {
-  return file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
-}
 
 function formatFileSize(size: number) {
   const megabytes = size / 1024 / 1024;
